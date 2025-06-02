@@ -1,1 +1,719 @@
-<h1>Welcome to my Blog</h1>
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>我的静态博客</title>
+    <!-- 引入 Naive UI 样式 -->
+    <link rel="stylesheet" href="https://unpkg.com/naive-ui/dist/style.css">
+    <!-- 引入 Vue 3 -->
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <!-- 引入 Naive UI -->
+    <script src="https://unpkg.com/naive-ui/dist/index.js"></script>
+    <!-- 引入图标库 -->
+    <script src="https://unpkg.com/@vicons/ionicons5/dist/ionicons5.global.js"></script>
+    <style>
+        /* 全局样式 */
+        body {
+            background-color: #1e1e1e;
+            margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            color: #fff;
+        }
+        
+        .container { 
+            width: 100%;
+            margin: 0 auto;
+        }
+        
+        /* 导航栏样式 */
+        .nav {
+            display: flex;
+            font-size: 20px;
+            padding: 15px 20px;
+            color: #fff;
+            background-color: #2a2e35;
+            
+            div {
+                cursor: pointer;
+                margin-right: 15px;
+                &:hover {
+                    color: #f60;
+                }
+                span {
+                    font-size: 12px;
+                }
+            }
+        }
+        
+        /* 搜索栏 */
+        .search {
+            margin-bottom: 0px;
+            margin-top: 0px;
+            height:100%;
+            padding: 20px;
+            background: rgba(42, 46, 53, 0.8);
+            backdrop-filter: blur(5px);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            
+            .n-space {
+                width: 100%;
+                max-width: 1200px;
+                margin: 0 auto;
+                display: flex;
+                justify-content: center;
+            }
+            
+            .n-input {
+                background: rgba(255, 255, 255, 0.1);
+                border: 1px solid rgba(255, 255, 255, 0.2);
+                color: #fff;
+                
+                &::placeholder {
+                    color: rgba(255, 255, 255, 0.5);
+                }
+                
+                &:hover, &:focus {
+                    border-color: #f60;
+                }
+            }
+            
+            .n-button {
+                background: #f60 !important;
+                border-color: #f60 !important;
+                color: white !important;
+                
+                &:hover {
+                    background: #ff8033 !important;
+                }
+            }
+        }
+        
+        /* 分页 */
+        .n-pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 80px;
+            background: rgba(42, 46, 53, 0.9);
+            width: 100%;
+            padding: 0 20px;
+            box-sizing: border-box;
+        }
+        
+        /* 页脚 */
+        .footer {
+            text-align: center;
+            line-height: 25px;
+            color: #fff;
+            background-color: #2a2e35;
+            padding: 20px;
+        }
+        
+        /* 卡片样式 */
+        .cardsbody {
+            width: 100%;
+            padding: 40px 60px;
+            max-width: 1300px;
+            box-sizing: border-box;
+            background-color: #131417;
+            background-image: linear-gradient(315deg, #131417 0%, #1e1f26 74%);
+            display: flex;
+            align-items: center;
+            position: relative;
+        }
+        
+        .cardscontainer {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            width: 100%;
+            max-width: 1200px;
+            padding: 5% 5%;
+            box-sizing: border-box;
+            margin: 0 auto;
+        }
+        
+        .cardsbox {
+            position: relative;
+            width: calc(33.333% - 40px);
+            min-width: 300px;
+            max-width: 350px;
+            height: 450px;
+            transition: all 0.5s ease;
+            flex-shrink: 0;
+        }
+        
+        @media (max-width: 1200px) {
+            .cardsbox {
+                width: 300px;
+                height: 400px;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .cardsbox {
+                width: 100%;
+                max-width: 350px;
+            }
+            
+            .cardsbody {
+                padding: 40px 40px;
+                
+                .page-arrow {
+                    width: 40px;
+                    height: 40px;
+                }
+            }
+        }
+        
+        .cardsbox:hover {
+            transform: translateY(-10px);
+        }
+        
+        .cardscontent {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            position: relative;
+            left: -10%;
+            margin-top: 13%;
+            padding: 20px 40px;
+            color: #fff;
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+            z-index: 1;
+            transition: 0.5s;
+            height: 80%;
+            box-sizing: border-box;
+            cursor: pointer;
+        }
+        
+        .cardscontent h2 {
+            font-size: 2em;
+            color: #fff;
+            margin-bottom: 10px;
+            text-shadow: 0px 5px 5px #424141, 1px 1px 1px #ffffff;
+        }
+        
+        .cardscontent p {
+            font-size: 1.1em;
+            margin-bottom: 10px;
+            line-height: 1.4em;
+        }
+        
+        .cardscontent a {
+            display: inline-block;
+            font-size: 1.1em;
+            color: #111;
+            background: #fff;
+            padding: 10px;
+            border-radius: 4px;
+            text-decoration: none;
+            font-weight: 700;
+            margin-top: 5px;
+            transition: 0.6s;
+        }
+        
+        .empty-card {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: rgba(255, 255, 255, 0.3);
+            
+            .question-mark {
+                font-size: 4em;
+                line-height: 1;
+                margin-bottom: 20px;
+                animation: pulse 2s infinite;
+            }
+            
+            p {
+                font-size: 1.2em;
+            }
+        }
+        
+        @keyframes pulse {
+            0%, 100% {
+                transform: scale(1);
+                opacity: 0.7;
+            }
+            50% {
+                transform: scale(1.1);
+                opacity: 0.9;
+            }
+        }
+        
+        .cardscontent a:hover {
+            background: #222;
+            color: #fff;
+            border-radius: 16px;
+            box-shadow: 0 2px 15px #222;
+        }
+        
+        .cardsbox::before {
+            content: "";
+            position: absolute;
+            background-color: #fff;
+            top: 0;
+            left: 50px;
+            width: 50%;
+            height: 100%;
+            text-decoration: none;
+            border-radius: 8px;
+            transform: skewX(15deg);
+            transition: 0.5s;
+        }
+        
+        .cardsbox::after {
+            content: "";
+            position: absolute;
+            background-color: #fff;
+            top: 0;
+            left: 50px;
+            width: 50%;
+            height: 100%;
+            border-radius: 8px;
+            transform: skewX(15deg);
+            filter: blur(30px);
+            transition: 0.5s;
+        }
+        
+        .cardsbox:hover::before,
+        .cardsbox:hover::after {
+            transform: skewX(0deg);
+            left: 20px;
+            width: calc(100% - 90px);
+        }
+        
+        .cardsbox:nth-child(1)::before,
+        .cardsbox:nth-child(1)::after {
+            background: linear-gradient(315deg, #ffbc00, #ff0058);
+        }
+        
+        .cardsbox:nth-child(2)::before,
+        .cardsbox:nth-child(2)::after {
+            background: linear-gradient(315deg, #03a9f4, #ff0058);
+        }
+        
+        .cardsbox:nth-child(3)::before,
+        .cardsbox:nth-child(3)::after {
+            background: linear-gradient(315deg, #4dff03, #00d0ff);
+        }
+        
+        .cardsbox span {
+            display: block;
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: 5;
+            pointer-events: none;
+        }
+        
+        .cardsbox span::before {
+            content: "";
+            position: absolute;
+            background: rgba(255, 255, 255, 0.1);
+            top: 0;
+            left: 0;
+            width: 0;
+            height: 0;
+            opacity: 0;
+            transition: 0.3s;
+            backdrop-filter: blur(10px);
+            border-radius: 8px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+            animation: animate 2s ease-in-out infinite;
+        }
+        
+        .cardsbox:hover span::before {
+            opacity: 1;
+            top: -50px;
+            left: 50px;
+            width: 100px;
+            height: 100px;
+        }
+        
+        .cardsbox span::after {
+            content: "";
+            position: absolute;
+            bottom: 0;
+            right: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.1);
+            opacity: 0;
+            transition: 0.5s;
+            backdrop-filter: blur(10px);
+            border-radius: 8px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+            animation: animate 2s ease-in-out infinite;
+            animation-delay: -1s;
+        }
+        
+        .cardsbox:hover span::after {
+            bottom: -50px;
+            right: 50px;
+            width: 100px;
+            height: 100px;
+            opacity: 1;
+        }
+        
+        @keyframes animate {
+            0%, 100% {
+                transform: translateY(10px);
+            }
+            50% {
+                transform: translate(-10px);
+            }
+        }
+        
+        /* 翻页箭头 */
+        .page-arrow {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            z-index: 10;
+            border: none;
+            outline: none;
+          
+            &:hover:not(:disabled) {
+              background: rgba(255, 102, 0, 0.7);
+              transform: translateY(-50%) scale(1.1);
+            }
+          
+            &:disabled {
+              opacity: 0.3;
+              cursor: not-allowed;
+            }
+          
+            .n-icon {
+              transition: transform 0.3s;
+            }
+          
+            &:hover:not(:disabled) .n-icon {
+              transform: scale(1.2);
+            }
+        }
+          
+        .left-arrow {
+            left: 10px;
+        }
+          
+        .right-arrow {
+            right: 10px;
+        }
+        
+        /* 详情页样式 */
+        .blog-content img {
+            max-width: 100% !important;
+        }
+        
+        .detail-container {
+            width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            color: #fff;
+        }
+        
+        .back-button {
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <!-- 首页内容 -->
+        <div v-if="currentPage === 'home'" class="container">
+            <div class="nav">
+                <div @click="homePage">首页</div>
+                <div>
+                    <n-popselect @update:value="searchByCategory" v-model:value="selectedCategory" :options="categortyOptions" trigger="click">
+                        <div>分类<span>{{ categoryName }}</span></div>
+                    </n-popselect>
+                </div>
+            </div>
+
+            <n-space class="search">
+                <n-input v-model:value="pageInfo.keyword" :style="{ width: '500px' }" placeholder="请输入关键字" />
+                <n-button type="primary" ghost @click="loadBlogs(0)"> 搜索 </n-button>
+            </n-space>
+            
+            <!-- 卡片区域 -->
+            <div class="cardsbody">
+                <button class="page-arrow left-arrow" @click="prevPage" :disabled="pageInfo.page === 1">
+                    <n-icon size="28"><arrow-back /></n-icon>
+                </button>
+            
+                <div class="cardscontainer">
+                    <div class="cardsbox" v-for="(card, index) in 3" :key="index">
+                        <span></span>
+                        <div class="cardscontent" @click="toDetail(getBlogForCard(index))">
+                            <template v-if="getBlogForCard(index)">
+                                <h2>{{ getBlogForCard(index).title }}</h2>
+                                <p>发布时间：{{ getBlogForCard(index).create_time }}</p>
+                                <a>阅读更多</a>
+                            </template>
+                            <template v-else>
+                                <div class="empty-card">
+                                    <div class="question-mark">?</div>
+                                    <p>暂无内容</p>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                </div>
+            
+                <button class="page-arrow right-arrow" @click="nextPage" :disabled="pageInfo.page === pageInfo.pageCount">
+                    <n-icon size="28"><arrow-forward /></n-icon>
+                </button>
+            </div>
+            
+            <n-pagination @update:page="loadBlogs" v-model:page="pageInfo.page" :page-count="pageInfo.pageCount" />
+            
+            <div class="footer">
+                <div>Power by StrandKirsch</div>
+                <div>静态博客演示</div>
+            </div>
+        </div>
+        
+        <!-- 详情页内容 -->
+        <div v-if="currentPage === 'detail'" class="detail-container">
+            <n-button @click="back" class="back-button">返回</n-button>
+            <!-- 标题 -->
+            <n-h1>{{ blogInfo.title }}</n-h1>
+            <!-- 文章内容 -->
+            <div class="blog-content" v-html="blogInfo.content"></div>
+        </div>
+    </div>
+
+    <script>
+        const { createApp, ref, reactive, computed } = Vue;
+        const { NInput, NButton, NPagination, NPopselect, NSpace, NH1, NIcon } = naive;
+        
+        // 定义静态博客数据
+        const staticBlogs = [
+            {
+                id: 1,
+                title: "示例博客1",
+                content: "<p>这是第一个示例博客的内容...</p><p>这里可以包含HTML内容，比如图片、链接等。</p>",
+                create_time: "2023-01-01",
+                categoryId: 1
+            },
+            {
+                id: 2,
+                title: "示例博客2",
+                content: "<p>这是第二个示例博客的内容...</p><p>静态博客不需要后端服务器支持。</p>",
+                create_time: "2023-01-02",
+                categoryId: 2
+            },
+            {
+                id: 3,
+                title: "示例博客3",
+                content: "<p>这是第三个示例博客的内容...</p><p>所有数据都存储在客户端。</p>",
+                create_time: "2023-01-03",
+                categoryId: 1
+            },
+            {
+                id: 4,
+                title: "示例博客4",
+                content: "<p>这是第四个示例博客的内容...</p><p>适合部署在GitHub Pages上。</p>",
+                create_time: "2023-01-04",
+                categoryId: 3
+            },
+            {
+                id: 5,
+                title: "示例博客5",
+                content: "<p>这是第五个示例博客的内容...</p><p>使用Vue 3和Naive UI构建。</p>",
+                create_time: "2023-01-05",
+                categoryId: 2
+            }
+        ];
+        
+        const app = createApp({
+            setup() {
+                const currentPage = ref('home');
+                const selectedCategory = ref(0);
+                const categortyOptions = ref([
+                    { label: "全部", value: 0 },
+                    { label: "技术", value: 1 },
+                    { label: "生活", value: 2 },
+                    { label: "旅行", value: 3 }
+                ]);
+                const blogListInfo = ref([]);
+                const blogInfo = ref({});
+                
+                const pageInfo = reactive({
+                    page: 1,
+                    pageSize: 3,
+                    pageCount: 0,
+                    count: 0,
+                    keyword: "",
+                    categoryId: 0,
+                });
+                
+                // 获取对应card的blog
+                const getBlogForCard = (cardIndex) => {
+                    return blogListInfo.value[cardIndex] || null;
+                };
+                
+                // 加载博客列表
+                const loadBlogs = async (page = 1) => {
+                    pageInfo.page = page;
+                    
+                    // 过滤博客数据
+                    let filteredBlogs = [...staticBlogs];
+                    
+                    // 按分类过滤
+                    if (pageInfo.categoryId > 0) {
+                        filteredBlogs = filteredBlogs.filter(blog => blog.categoryId === pageInfo.categoryId);
+                    }
+                    
+                    // 按关键字过滤
+                    if (pageInfo.keyword) {
+                        const keyword = pageInfo.keyword.toLowerCase();
+                        filteredBlogs = filteredBlogs.filter(blog => 
+                            blog.title.toLowerCase().includes(keyword) || 
+                            blog.content.toLowerCase().includes(keyword)
+                        );
+                    }
+                    
+                    // 分页处理
+                    const start = (page - 1) * pageInfo.pageSize;
+                    const end = start + pageInfo.pageSize;
+                    const paginatedBlogs = filteredBlogs.slice(start, end);
+                    
+                    // 处理数据
+                    let tempRows = paginatedBlogs.map(row => {
+                        return {
+                            ...row,
+                            content: row.content && row.content.length > 50 
+                                ? row.content.substring(0, 50) + "..." 
+                                : row.content || '',
+                            create_time: formatDate(row.create_time)
+                        };
+                    });
+                    
+                    // 确保总是有3个blog
+                    while (tempRows.length < pageInfo.pageSize) {
+                        tempRows.push(null);
+                    }
+                    
+                    blogListInfo.value = tempRows;
+                    pageInfo.count = filteredBlogs.length;
+                    pageInfo.pageCount = Math.max(1, Math.ceil(pageInfo.count / pageInfo.pageSize));
+                };
+                
+                // 日期格式化
+                const formatDate = (dateString) => {
+                    if (!dateString) return '未知日期';
+                    const d = new Date(dateString);
+                    return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`;
+                };
+                
+                // 选中分类
+                const searchByCategory = (categoryId) => {
+                    pageInfo.categoryId = categoryId;
+                    loadBlogs();
+                };
+                
+                // 翻页方法
+                const prevPage = () => {
+                    if (pageInfo.page > 1) {
+                        loadBlogs(pageInfo.page - 1);
+                    }
+                };
+                
+                const nextPage = () => {
+                    if (pageInfo.page < pageInfo.pageCount) {
+                        loadBlogs(pageInfo.page + 1);
+                    }
+                };
+                
+                // 跳转到详情页
+                const toDetail = (blog) => {
+                    if (!blog) return;
+                    
+                    // 查找完整的博客信息
+                    const fullBlog = staticBlogs.find(b => b.id === blog.id);
+                    if (fullBlog) {
+                        blogInfo.value = {
+                            ...fullBlog,
+                            create_time: formatDate(fullBlog.create_time)
+                        };
+                        currentPage.value = 'detail';
+                    }
+                };
+                
+                // 返回首页
+                const back = () => {
+                    currentPage.value = 'home';
+                };
+                
+                // 首页
+                const homePage = () => {
+                    currentPage.value = 'home';
+                };
+                
+                // 初始化
+                loadBlogs();
+                
+                return {
+                    currentPage,
+                    selectedCategory,
+                    categortyOptions,
+                    blogListInfo,
+                    blogInfo,
+                    pageInfo,
+                    loadBlogs,
+                    searchByCategory,
+                    toDetail,
+                    back,
+                    homePage,
+                    prevPage,
+                    nextPage,
+                    getBlogForCard,
+                    categoryName: computed(() => {
+                        let selectedOption = categortyOptions.value.find((option) => { 
+                            return option.value == selectedCategory.value 
+                        });
+                        return selectedOption ? selectedOption.label : "";
+                    })
+                };
+            }
+        });
+        
+        // 注册组件
+        app.component('NInput', NInput);
+        app.component('NButton', NButton);
+        app.component('NPagination', NPagination);
+        app.component('NPopselect', NPopselect);
+        app.component('NSpace', NSpace);
+        app.component('NH1', NH1);
+        app.component('NIcon', NIcon);
+        app.component('ArrowBack', ionicons5.ArrowBack);
+        app.component('ArrowForward', ionicons5.ArrowForward);
+        
+        app.mount('#app');
+    </script>
+</body>
+</html>
