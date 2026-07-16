@@ -6,7 +6,7 @@
       ref="containerRef"
       :class="{ dragging: drag.active }"
       @mousedown="onDragStart"
-      @touchstart.prevent="onTouchStart"
+      @touchstart="onTouchStart"
     >
       <div
         v-for="card in allCards"
@@ -59,7 +59,6 @@ const RANGE_SIZE = 25
 const maxLevelId = Math.max(...levelsData.map(l => l.id), 0)
 const rangeCount = Math.ceil(maxLevelId / RANGE_SIZE)
 
-// Only show ranges that contain at least one level
 const allRanges = Array.from({ length: rangeCount }, (_, i) => ({
   start: i * RANGE_SIZE + 1,
   end: (i + 1) * RANGE_SIZE,
@@ -67,7 +66,6 @@ const allRanges = Array.from({ length: rangeCount }, (_, i) => ({
 const ranges = allRanges.filter(r => levelsData.some(l => l.id >= r.start && l.id <= r.end))
 const selectedStart = ref(ranges[0]?.start ?? 1)
 
-// Level lookup map
 const levelMap = {}
 levelsData.forEach(l => { levelMap[l.id] = l })
 
@@ -91,18 +89,15 @@ async function selectRange(start) {
   const el = containerRef.value
   if (!el) return
 
-  // 渐隐
   el.style.transition = 'opacity 0.2s ease'
   el.style.opacity = '0'
   await new Promise(r => setTimeout(r, 200))
 
-  // 切换数据
   selectedStart.value = start
   uidCounter = 0; cardRefs = {}; stopInertia()
   buildGrid()
   await nextTick(); initCenter()
 
-  // 渐显
   el.style.opacity = '1'
   await new Promise(r => setTimeout(r, 200))
   el.style.transition = ''
@@ -167,7 +162,6 @@ function buildGrid() {
   allCards.value = cards
 }
 
-// ── Wrap ────────────────────────────────────────────
 function wrapCard(card) {
   if (card.x > totalW - CARD_W) card.x -= totalW + GAP_X
   if (card.x < -CARD_W) card.x += totalW + GAP_X
@@ -175,7 +169,6 @@ function wrapCard(card) {
   if (card.y < -CARD_H) card.y += totalH + GAP_Y
 }
 
-// ── Apply ───────────────────────────────────────────
 function applyPositions() {
   for (const card of allCards.value) {
     const el = cardRefs[card.uid]
@@ -187,6 +180,8 @@ function applyPositions() {
 // ── Drag ────────────────────────────────────────────
 const drag = reactive({ active: false, mx: 0, my: 0 })
 let vx = 0, vy = 0, inertiaId = null
+let hasMoved = false              // 是否发生了实际拖动
+let dragStart = { x: 0, y: 0 }   // 触摸/鼠标起始位置
 
 function getPos(e) {
   if (e.touches) return { x: e.touches[0].clientX, y: e.touches[0].clientY }
@@ -195,22 +190,35 @@ function getPos(e) {
 
 function onDragStart(e) {
   drag.active = true
+  hasMoved = false               // 重置拖动标记
   stopInertia()
   const p = getPos(e)
   drag.mx = p.x; drag.my = p.y
+  dragStart.x = p.x
+  dragStart.y = p.y
   window.addEventListener('mousemove', onDragMove)
   window.addEventListener('mouseup', onDragEnd)
   window.addEventListener('touchmove', onDragMove, { passive: false })
   window.addEventListener('touchend', onDragEnd)
 }
 
-function onTouchStart(e) { onDragStart(e) }
+function onTouchStart(e) {
+  onDragStart(e)                // 移除 .prevent，正常传递事件
+}
 
 function onDragMove(e) {
   if (!drag.active) return
+  // 移动端阻止页面滚动（仅当真正拖拽时）
+  if (e.cancelable) e.preventDefault()
+
   const p = getPos(e)
   const dx = e.movementX !== undefined ? e.movementX : p.x - drag.mx
   const dy = e.movementY !== undefined ? e.movementY : p.y - drag.my
+
+  // 判断是否发生了超过 3px 的拖动
+  if (Math.abs(p.x - dragStart.x) > 3 || Math.abs(p.y - dragStart.y) > 3) {
+    hasMoved = true
+  }
 
   for (const card of allCards.value) {
     card.x += dx
@@ -254,7 +262,11 @@ function stopInertia() {
 
 // ── Navigation ─────────────────────────────────────
 function goToLevel(card) {
-  if (drag.active) return
+  // 如果正在拖拽或发生过真实拖动，忽略本次点击
+  if (drag.active || hasMoved) {
+    hasMoved = false  // 重置，避免影响下次正常点击
+    return
+  }
   if (card.placeholder) return
   router.push(`/level/${card.level.id}`)
 }
@@ -274,7 +286,6 @@ onMounted(async () => {
   await nextTick()
   initCenter()
 
-  // Timeline overflow check
   if (timelineRef.value) {
     checkTimelineOverflow()
     resizeObserver = new ResizeObserver(checkTimelineOverflow)
@@ -307,9 +318,12 @@ onBeforeUnmount(() => {
   -webkit-user-select: none;
   will-change: transform;
   transform: translateZ(0);
-  backface-visibility: hidden;   /* 额外稳定 */
+  backface-visibility: hidden;
+  touch-action: manipulation;   /* 优化移动端点击，禁用双击缩放 */
 }
-.photos.dragging { cursor: grabbing; }
+.photos.dragging {
+  cursor: grabbing;
+}
 
 /* ── 卡片 ────────────────────────────────────── */
 .card {
@@ -333,29 +347,36 @@ onBeforeUnmount(() => {
   flex-shrink: 0;
   transition: box-shadow 0.3s ease;
   will-change: transform;
-}
-.card {
   opacity: 0.97;
 }
-.card:hover { box-shadow: 0 8px 36px rgba(0,0,0,0.14); }
+.card:hover {
+  box-shadow: 0 8px 36px rgba(0,0,0,0.14);
+}
 .card.placeholder {
   opacity: 0.95;
   background: rgba(255,255,255,0.7);
   cursor: default;
   border-style: dashed;
 }
-.card.placeholder:hover { box-shadow: 0 4px 24px rgba(0,0,0,0.06); }
+.card.placeholder:hover {
+  box-shadow: 0 4px 24px rgba(0,0,0,0.06);
+}
 
 .card-bg {
-  position: absolute; inset: 0; border-radius: 16px;
+  position: absolute;
+  inset: 0;
+  border-radius: 16px;
   background: radial-gradient(ellipse at 50% 0%, rgba(0,0,0,0.03) 0%, transparent 70%);
   pointer-events: none;
 }
-.card.placeholder .card-bg { background: none; }
+.card.placeholder .card-bg {
+  background: none;
+}
 
 .card-id {
   font-family: var(--font-family, 'Inter', sans-serif);
-  font-size: 3.5rem; font-weight: 800;
+  font-size: 3.5rem;
+  font-weight: 800;
   color: var(--color-black, #000);
   letter-spacing: -0.03em;
 }
@@ -366,19 +387,26 @@ onBeforeUnmount(() => {
 
 .card-name {
   font-family: var(--font-family, 'Inter', sans-serif);
-  font-size: 0.9rem; font-weight: 400;
-  color: rgba(0,0,0,0.35); letter-spacing: 0.02em;
+  font-size: 0.9rem;
+  font-weight: 400;
+  color: rgba(0,0,0,0.35);
+  letter-spacing: 0.02em;
 }
 .card-subtitle {
   font-family: var(--font-family, 'Inter', sans-serif);
-  font-size: 1.25rem; font-weight: 500;
+  font-size: 1.25rem;
+  font-weight: 500;
   color: rgba(0,0,0,0.65);
 }
 .card-danger {
-  display: flex; gap: 4px; font-size: 0.85rem;
+  display: flex;
+  gap: 4px;
+  font-size: 0.85rem;
   color: rgba(0,0,0,0.12);
 }
-.card-danger .on { color: #e63946; }
+.card-danger .on {
+  color: #e63946;
+}
 .card-danger .danger-text {
   font-family: var(--font-family, 'Inter', sans-serif);
   font-weight: 600;
@@ -402,7 +430,9 @@ onBeforeUnmount(() => {
   scrollbar-width: none;
   -ms-overflow-style: none;
 }
-.timeline::-webkit-scrollbar { display: none; }
+.timeline::-webkit-scrollbar {
+  display: none;
+}
 .timeline.scrollable {
   justify-content: flex-start;
 }
@@ -430,5 +460,7 @@ onBeforeUnmount(() => {
   color: #fff;
   border-color: var(--color-black, #000);
 }
-.range-label { pointer-events: none; }
-</style>
+.range-label {
+  pointer-events: none;
+}
+</style>·

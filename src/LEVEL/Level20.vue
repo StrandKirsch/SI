@@ -95,7 +95,7 @@ defineProps({ id: { type: String, required: true } })
 const router = useRouter()
 function goBack() { sessionStorage.setItem('skipIntro', '1'); router.push('/') }
 
-const view = ref('present')
+const view = ref('past')
 </script>
 
 <style scoped>
