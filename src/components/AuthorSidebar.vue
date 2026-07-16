@@ -44,7 +44,7 @@
 </template>
 
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, ref, onMounted, onUnmounted } from 'vue'
 import { levels } from '../data/levels.js'
 
 const props = defineProps({
@@ -52,6 +52,21 @@ const props = defineProps({
 })
 
 const sidebarCollapsed = ref(true)
+const isMobile = ref(false)
+
+function checkMobile() {
+  isMobile.value = window.innerWidth <= 767
+  if (isMobile.value) sidebarCollapsed.value = false
+}
+
+onMounted(() => {
+  checkMobile()
+  window.addEventListener('resize', checkMobile)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('resize', checkMobile)
+})
 
 const currentLevel = computed(() => {
   return levels.find(l => l.id === props.currentLevelId) || null
@@ -237,34 +252,36 @@ function skipIntro() {
     position: relative;
     width: 100%;
     min-width: unset;
-    height: auto;
-    padding: 16px 20px;
+    min-height: auto;
+    padding: 12px 16px;
     border-right: none;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    transition: none;
   }
 
   .author-sidebar.collapsed {
     width: 100%;
     min-width: unset;
-    padding: 12px 20px;
+    min-height: auto;
+    padding: 8px 16px;
   }
 
   .sidebar-toggle {
-    display: none;
+    display: block;
+    position: absolute;
+    top: 10px;
+    right: 12px;
+    font-size: 0.85rem;
+    padding: 6px 10px;
   }
 
   .sidebar-inner {
+    margin-top: 4px;
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
     align-items: flex-start;
-  }
-
-  .back-link {
-    width: 100%;
-    margin-bottom: 0;
-    padding-bottom: 8px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    padding-right: 36px;
   }
 
   .author-block {
@@ -278,6 +295,16 @@ function skipIntro() {
     margin-bottom: 4px;
   }
 
+  .section-label {
+    width: 100%;
+    font-size: 0.65rem;
+    margin-bottom: 4px;
+  }
+
+  .other-works-label {
+    display: none;
+  }
+
   .other-levels {
     flex-direction: row;
     flex-wrap: wrap;
@@ -286,6 +313,14 @@ function skipIntro() {
   .level-link {
     padding: 3px 8px;
     gap: 4px;
+    font-size: 0.7rem;
+  }
+
+  .level-id { font-size: 0.72rem; }
+  .level-sub { font-size: 0.72rem; }
+
+  .no-other-hint,
+  .no-data-hint {
     font-size: 0.7rem;
   }
 }

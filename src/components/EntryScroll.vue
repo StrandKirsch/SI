@@ -20,10 +20,11 @@
 import { ref, onMounted, onBeforeUnmount } from 'vue'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
+import { ScrollToPlugin } from 'gsap/ScrollToPlugin'
 import WavesBackground from './WavesBackground.vue'
 import MainContent from './MainContent.vue'
 
-gsap.registerPlugin(ScrollTrigger)
+gsap.registerPlugin(ScrollTrigger, ScrollToPlugin)
 
 const spacerRef = ref(null)
 const overlayRef = ref(null)
@@ -33,6 +34,16 @@ const cardsRef = ref(null)
 
 const targetScale = window.innerWidth >= 768 ? 800 : 500
 let tl = null
+
+// 显示卡片的函数
+const showCards = () => {
+  gsap.to(cardsRef.value, {
+    opacity: 1,
+    duration: 1,
+    ease: 'power2.out',
+    clearProps: 'opacity'
+  })
+}
 
 onMounted(() => {
   if ('scrollRestoration' in history) {
@@ -78,7 +89,7 @@ onMounted(() => {
   })
   gsap.set(cardsRef.value, { opacity: 0 })
 
-  // 新增：防止重复触发自动滚动的标志
+  // 防止重复触发的标志
   let autoScrolled = false
 
   tl = gsap.timeline({
@@ -92,43 +103,72 @@ onMounted(() => {
 
       // ---------- 滚动进度更新时检测 ----------
       onUpdate: (self) => {
-        // 当进度达到 30% 且尚未触发自动滚动时，执行平滑滚动至终点
+        // 当进度达到 30% 且尚未触发自动滚动时
         if (self.progress >= 0.3 && !autoScrolled) {
           autoScrolled = true
+          
+          // 使用 GSAP ScrollToPlugin 滚动到终点
           const spacer = spacerRef.value
-          // 计算 spacer 底部对齐视口底部所需的滚动距离
           const targetScroll = spacer.offsetTop + spacer.offsetHeight - window.innerHeight
-          window.scrollTo({ top: targetScroll, behavior: 'smooth' })
+          
+          gsap.to(window, {
+            scrollTo: targetScroll,
+            duration: 0.8,
+            ease: 'power2.inOut',
+            onComplete: () => {
+              // 滚动完成后的处理
+              if (tl?.scrollTrigger) tl.scrollTrigger.kill()
+
+              // 1. 隐藏遮罩
+              if (overlayRef.value) {
+                overlayRef.value.style.opacity = '0'
+                overlayRef.value.style.display = 'none'
+              }
+
+              // 2. 回收滚动空间
+              if (spacerRef.value) spacerRef.value.style.height = '0px'
+
+              // 3. 重置滚动位置
+              setTimeout(() => {
+                window.scrollTo(0, 0)
+              }, 300)
+
+              // 4. 卡片渐显动画
+              setTimeout(() => {
+                showCards()
+              }, 200)
+            }
+          })
         }
       },
 
       // ---------- 滚动离开（到达终点）时的处理 ----------
       onLeave() {
-        if (tl?.scrollTrigger) tl.scrollTrigger.kill()
+        // 如果自动滚动还没触发，这里作为兜底处理
+        if (!autoScrolled) {
+          autoScrolled = true
+          
+          if (tl?.scrollTrigger) tl.scrollTrigger.kill()
 
-        // 1. 隐藏遮罩
-        if (overlayRef.value) {
-          overlayRef.value.style.opacity = '0'
-          overlayRef.value.style.display = 'none'
+          // 1. 隐藏遮罩
+          if (overlayRef.value) {
+            overlayRef.value.style.opacity = '0'
+            overlayRef.value.style.display = 'none'
+          }
+
+          // 2. 回收滚动空间
+          if (spacerRef.value) spacerRef.value.style.height = '0px'
+
+          // 3. 重置滚动位置
+          setTimeout(() => {
+            window.scrollTo(0, 0)
+          }, 300)
+
+          // 4. 卡片渐显动画
+          setTimeout(() => {
+            showCards()
+          }, 200)
         }
-
-        // 2. 回收滚动空间
-        if (spacerRef.value) spacerRef.value.style.height = '0px'
-
-        // 3. 重置滚动位置（延迟避免干扰）
-        setTimeout(() => {
-          window.scrollTo(0, 0)
-        }, 300)
-
-        // 4. 延迟 0.2 秒后卡片淡入
-        setTimeout(() => {
-          gsap.to(cardsRef.value, {
-            opacity: 1,
-            duration: 1,
-            ease: 'power2.out',
-            clearProps: 'opacity'
-          })
-        }, 200)
       }
     }
   })
@@ -162,13 +202,13 @@ onBeforeUnmount(() => {
   position: fixed;
   inset: 0;
   z-index: 1;
-  overflow-y: scroll;              /* 保留滚动功能 */
-  scrollbar-width: none;           /* Firefox 隐藏 */
-  -ms-overflow-style: none;        /* IE/Edge 隐藏 */
+  overflow-y: scroll;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
   background: var(--color-off-white, #f7f7f7);
 }
 .content::-webkit-scrollbar {
-  display: none;                   /* Chrome/Safari/Edge 隐藏 */
+  display: none;
 }
 
 .overlay {
@@ -214,13 +254,12 @@ onBeforeUnmount(() => {
 }
 </style>
 
-<!-- 全局样式：彻底隐藏浏览器默认滚动条（不影响滚动功能） -->
 <style>
 html {
-  scrollbar-width: none;          /* Firefox */
-  -ms-overflow-style: none;       /* IE / Edge */
+  scrollbar-width: none;
+  -ms-overflow-style: none;
 }
 html::-webkit-scrollbar {
-  display: none;                  /* Chrome / Safari / Edge */
+  display: none;
 }
 </style>
