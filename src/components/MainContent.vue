@@ -1,0 +1,434 @@
+<template>
+  <div class="main-root">
+    <!-- 拖拽区域 -->
+    <div
+      class="photos"
+      ref="containerRef"
+      :class="{ dragging: drag.active }"
+      @mousedown="onDragStart"
+      @touchstart.prevent="onTouchStart"
+    >
+      <div
+        v-for="card in allCards"
+        :key="card.uid"
+        :ref="el => setRef(card.uid, el)"
+        class="card"
+        :class="{ placeholder: card.placeholder }"
+        @click.stop="goToLevel(card)"
+      >
+        <div class="card-bg"></div>
+        <span class="card-id">{{ card.placeholder ? '???' : 'SI-' + card.level.id }}</span>
+        <span class="card-subtitle">{{ card.level.subtitle }}</span>
+        <span class="card-name">{{ card.level.name }}</span>
+        <span class="card-danger" v-if="!card.placeholder">
+          <template v-if="typeof card.level.danger === 'number'">
+            <span v-for="n in 5" :key="n" :class="{ on: n <= (card.level.danger || 0) }">&#9670;</span>
+          </template>
+          <span v-else class="danger-text">{{ card.level.danger }}</span>
+        </span>
+      </div>
+    </div>
+
+    <!-- 范围选择时间轴 -->
+    <div class="timeline" ref="timelineRef" :class="{ scrollable: needsScroll }">
+      <button
+        v-for="range in ranges"
+        :key="range.start"
+        class="range-btn"
+        :class="{ active: range.start === selectedStart }"
+        @click.stop="selectRange(range.start)"
+      >
+        <span class="range-label">SI-{{ range.start }} – SI-{{ range.end }}</span>
+      </button>
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { ref, reactive, onMounted, onBeforeUnmount, nextTick } from 'vue'
+import { useRouter } from 'vue-router'
+import { levels as levelsData } from '../data/levels.js'
+
+const router = useRouter()
+const containerRef = ref(null)
+const timelineRef = ref(null)
+const needsScroll = ref(false)
+
+// ── Range data (dynamically adapts to levels.js) ────
+const RANGE_SIZE = 25
+const maxLevelId = Math.max(...levelsData.map(l => l.id), 0)
+const rangeCount = Math.ceil(maxLevelId / RANGE_SIZE)
+
+// Only show ranges that contain at least one level
+const allRanges = Array.from({ length: rangeCount }, (_, i) => ({
+  start: i * RANGE_SIZE + 1,
+  end: (i + 1) * RANGE_SIZE,
+}))
+const ranges = allRanges.filter(r => levelsData.some(l => l.id >= r.start && l.id <= r.end))
+const selectedStart = ref(ranges[0]?.start ?? 1)
+
+// Level lookup map
+const levelMap = {}
+levelsData.forEach(l => { levelMap[l.id] = l })
+
+function getLevel(id) {
+  if (levelMap[id]) return { ...levelMap[id], placeholder: false }
+  return {
+    id,
+    name: 'Unknown',
+    subtitle: 'Level data not found',
+    danger: 0,
+    placeholder: true,
+  }
+}
+
+let transiting = false
+
+async function selectRange(start) {
+  if (selectedStart.value === start || transiting) return
+  transiting = true
+
+  const el = containerRef.value
+  if (!el) return
+
+  // 渐隐
+  el.style.transition = 'opacity 0.2s ease'
+  el.style.opacity = '0'
+  await new Promise(r => setTimeout(r, 200))
+
+  // 切换数据
+  selectedStart.value = start
+  uidCounter = 0; cardRefs = {}; stopInertia()
+  buildGrid()
+  await nextTick(); initCenter()
+
+  // 渐显
+  el.style.opacity = '1'
+  await new Promise(r => setTimeout(r, 200))
+  el.style.transition = ''
+  transiting = false
+}
+
+function initCenter() {
+  const rect = containerRef.value.getBoundingClientRect()
+  const cx = -(totalW - rect.width) / 2
+  const cy = -(totalH - rect.height) / 2
+  for (const card of allCards.value) {
+    card.x += cx
+    card.y += cy
+    wrapCard(card)
+  }
+  applyPositions()
+}
+
+// ── Grid data ──────────────────────────────────────
+const COLS = 5
+const ROWS = 5
+const CARD_W = 360
+const CARD_H = 480
+const GAP_X = 300
+const GAP_Y = 350
+const MAX_VEL = 25
+const VEL_DECAY = 0.94
+const VEL_MIN = 0.15
+
+let uidCounter = 0
+const allCards = ref([])
+let cardRefs = {}
+let totalW = 0
+let totalH = 0
+
+function setRef(uid, el) {
+  if (el) cardRefs[uid] = el
+  else delete cardRefs[uid]
+}
+
+function buildGrid() {
+  const cards = []
+  const stepX = CARD_W + GAP_X
+  const stepY = CARD_H + GAP_Y
+  totalW = COLS * stepX - GAP_X
+  totalH = ROWS * stepY - GAP_Y
+
+  const start = selectedStart.value
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS; c++) {
+      const id = start + r * COLS + c
+      const level = getLevel(id)
+      cards.push({
+        uid: uidCounter++,
+        level,
+        placeholder: level.placeholder,
+        x: c * stepX,
+        y: r * stepY,
+      })
+    }
+  }
+  allCards.value = cards
+}
+
+// ── Wrap ────────────────────────────────────────────
+function wrapCard(card) {
+  if (card.x > totalW - CARD_W) card.x -= totalW + GAP_X
+  if (card.x < -CARD_W) card.x += totalW + GAP_X
+  if (card.y > totalH - CARD_H) card.y -= totalH + GAP_Y
+  if (card.y < -CARD_H) card.y += totalH + GAP_Y
+}
+
+// ── Apply ───────────────────────────────────────────
+function applyPositions() {
+  for (const card of allCards.value) {
+    const el = cardRefs[card.uid]
+    if (!el) continue
+    el.style.transform = `translate(${Math.round(card.x)}px, ${Math.round(card.y)}px)`
+  }
+}
+
+// ── Drag ────────────────────────────────────────────
+const drag = reactive({ active: false, mx: 0, my: 0 })
+let vx = 0, vy = 0, inertiaId = null
+
+function getPos(e) {
+  if (e.touches) return { x: e.touches[0].clientX, y: e.touches[0].clientY }
+  return { x: e.clientX, y: e.clientY }
+}
+
+function onDragStart(e) {
+  drag.active = true
+  stopInertia()
+  const p = getPos(e)
+  drag.mx = p.x; drag.my = p.y
+  window.addEventListener('mousemove', onDragMove)
+  window.addEventListener('mouseup', onDragEnd)
+  window.addEventListener('touchmove', onDragMove, { passive: false })
+  window.addEventListener('touchend', onDragEnd)
+}
+
+function onTouchStart(e) { onDragStart(e) }
+
+function onDragMove(e) {
+  if (!drag.active) return
+  const p = getPos(e)
+  const dx = e.movementX !== undefined ? e.movementX : p.x - drag.mx
+  const dy = e.movementY !== undefined ? e.movementY : p.y - drag.my
+
+  for (const card of allCards.value) {
+    card.x += dx
+    card.y += dy
+    wrapCard(card)
+  }
+
+  vx = Math.max(-MAX_VEL, Math.min(MAX_VEL, dx))
+  vy = Math.max(-MAX_VEL, Math.min(MAX_VEL, dy))
+
+  applyPositions()
+  drag.mx = p.x; drag.my = p.y
+}
+
+function onDragEnd() {
+  drag.active = false
+  window.removeEventListener('mousemove', onDragMove)
+  window.removeEventListener('mouseup', onDragEnd)
+  window.removeEventListener('touchmove', onDragMove)
+  window.removeEventListener('touchend', onDragEnd)
+
+  if (Math.abs(vx) > VEL_MIN || Math.abs(vy) > VEL_MIN) {
+    function step() {
+      vx *= VEL_DECAY; vy *= VEL_DECAY
+      if (Math.abs(vx) < VEL_MIN && Math.abs(vy) < VEL_MIN) { inertiaId = null; return }
+      for (const card of allCards.value) {
+        card.x += vx; card.y += vy
+        wrapCard(card)
+      }
+      applyPositions()
+      inertiaId = requestAnimationFrame(step)
+    }
+    inertiaId = requestAnimationFrame(step)
+  }
+}
+
+function stopInertia() {
+  if (inertiaId) { cancelAnimationFrame(inertiaId); inertiaId = null }
+  vx = 0; vy = 0
+}
+
+// ── Navigation ─────────────────────────────────────
+function goToLevel(card) {
+  if (drag.active) return
+  if (card.placeholder) return
+  router.push(`/level/${card.level.id}`)
+}
+
+// ── Timeline overflow detection ────────────────────
+let resizeObserver = null
+
+function checkTimelineOverflow() {
+  const el = timelineRef.value
+  if (!el) return
+  needsScroll.value = el.scrollWidth > el.clientWidth + 2
+}
+
+// ── Lifecycle ──────────────────────────────────────
+onMounted(async () => {
+  buildGrid()
+  await nextTick()
+  initCenter()
+
+  // Timeline overflow check
+  if (timelineRef.value) {
+    checkTimelineOverflow()
+    resizeObserver = new ResizeObserver(checkTimelineOverflow)
+    resizeObserver.observe(timelineRef.value)
+  }
+})
+
+onBeforeUnmount(() => {
+  onDragEnd()
+  stopInertia()
+  if (resizeObserver) resizeObserver.disconnect()
+})
+</script>
+
+<style scoped>
+.main-root {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── 拖拽区域 ──────────────────────────────────── */
+.photos {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  cursor: grab;
+  user-select: none;
+  -webkit-user-select: none;
+  will-change: transform;
+  transform: translateZ(0);
+  backface-visibility: hidden;   /* 额外稳定 */
+}
+.photos.dragging { cursor: grabbing; }
+
+/* ── 卡片 ────────────────────────────────────── */
+.card {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 360px;
+  height: 480px;
+  border-radius: 16px;
+  border: 1px solid rgba(0,0,0,0.08);
+  background: rgba(255,255,255,0.95);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  box-shadow: 0 4px 24px rgba(0,0,0,0.06);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: box-shadow 0.3s ease;
+  will-change: transform;
+}
+.card {
+  opacity: 0.97;
+}
+.card:hover { box-shadow: 0 8px 36px rgba(0,0,0,0.14); }
+.card.placeholder {
+  opacity: 0.95;
+  background: rgba(255,255,255,0.7);
+  cursor: default;
+  border-style: dashed;
+}
+.card.placeholder:hover { box-shadow: 0 4px 24px rgba(0,0,0,0.06); }
+
+.card-bg {
+  position: absolute; inset: 0; border-radius: 16px;
+  background: radial-gradient(ellipse at 50% 0%, rgba(0,0,0,0.03) 0%, transparent 70%);
+  pointer-events: none;
+}
+.card.placeholder .card-bg { background: none; }
+
+.card-id {
+  font-family: var(--font-family, 'Inter', sans-serif);
+  font-size: 3.5rem; font-weight: 800;
+  color: var(--color-black, #000);
+  letter-spacing: -0.03em;
+}
+.card.placeholder .card-id {
+  color: rgba(0,0,0,0.2);
+  font-size: 4rem;
+}
+
+.card-name {
+  font-family: var(--font-family, 'Inter', sans-serif);
+  font-size: 0.9rem; font-weight: 400;
+  color: rgba(0,0,0,0.35); letter-spacing: 0.02em;
+}
+.card-subtitle {
+  font-family: var(--font-family, 'Inter', sans-serif);
+  font-size: 1.25rem; font-weight: 500;
+  color: rgba(0,0,0,0.65);
+}
+.card-danger {
+  display: flex; gap: 4px; font-size: 0.85rem;
+  color: rgba(0,0,0,0.12);
+}
+.card-danger .on { color: #e63946; }
+.card-danger .danger-text {
+  font-family: var(--font-family, 'Inter', sans-serif);
+  font-weight: 600;
+  font-size: 0.8rem;
+  color: rgba(0,0,0,0.6);
+  letter-spacing: 0.04em;
+}
+
+/* ── 时间轴 ────────────────────────────────────── */
+.timeline {
+  display: flex;
+  justify-content: center;
+  gap: 4px;
+  padding: 16px 20px;
+  background: rgba(255,255,255,0.6);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-top: 1px solid rgba(0,0,0,0.06);
+  z-index: 10;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.timeline::-webkit-scrollbar { display: none; }
+.timeline.scrollable {
+  justify-content: flex-start;
+}
+
+.range-btn {
+  padding: 8px 16px;
+  border: 1px solid rgba(0,0,0,0.1);
+  border-radius: 8px;
+  background: rgba(255,255,255,0.6);
+  cursor: pointer;
+  font-family: var(--font-family, 'Inter', sans-serif);
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: rgba(0,0,0,0.5);
+  letter-spacing: 0.03em;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+.range-btn:hover {
+  background: rgba(0,0,0,0.05);
+  color: rgba(0,0,0,0.8);
+}
+.range-btn.active {
+  background: var(--color-black, #000);
+  color: #fff;
+  border-color: var(--color-black, #000);
+}
+.range-label { pointer-events: none; }
+</style>

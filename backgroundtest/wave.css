@@ -1,0 +1,53 @@
+body {
+  width: 100vw;
+  height: 100vh;
+  
+  background: #f40c3f;
+}
+
+a-waves {
+  --x: -0.5rem;
+  --y: 50%;
+
+  position: absolute;
+  top: 0;
+  left: 0;
+
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+
+  overflow: hidden;
+
+  &:before {
+    position: absolute;
+    top: 0;
+    left: 0;
+
+    width: 0.5rem;
+    height: 0.5rem;
+
+    background: #160000;
+    border-radius: 50%;
+
+    transform: translate3d(calc(var(--x) - 50%), calc(var(--y) - 50%), 0);
+
+    will-change: transform;
+
+    content: "";
+  }
+
+  svg {
+    display: block;
+
+    width: 100%;
+    height: 100%;
+
+    path {
+      fill: none;
+      stroke: #160000;
+      stroke-width: 1px;
+    }
+  }
+}

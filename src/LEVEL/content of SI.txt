@@ -1,0 +1,65 @@
+//Here are the contents of SI
+//Format: "number name difficulty [author(Only for main level)"
+//If sublevels or different versions exist, add [Tab] before
+
+SI-1 "存档点" 0 [珞瑕，StrandKirschblüten，Ginkgo Marisco ]
+    Unity.1 烟波浩渺，星火蜉蝣 SI 
+SI-2 伯利兹之境 3e [珞瑕]
+    Corp.2 "亚特兰蒂斯复兴" HQ 
+-----------------------------------internal
+SI-3 秩序·无序 熵                            [珞瑕]
+    3.1 破碎街区 殇 
+SI-4 薄雾迷宫 2                              [珞瑕]
+SI-5 冷却，直至荒凉 4                    [珞瑕]
+    5.1 工业热地 “开工！”
+SI-6 月升·月落 2e                            [珞瑕]
+SI-7 墨中人                                    [StrandKirschblüten  ，珞瑕  ，沛沛 ]
+SI-8 风暴脉搏 2                                [StrandKirschblüten]
+SI-9 “奇迹之海” 3 to 死区            [StrandKirschblüten]
+SI-10 出塞                       [StrandKirschblüten]
+-----------------------------------core
+SI-11 “影色舞” 3                          [StrandKirschblüten]
+    11.1 “十日河” 
+SI-12 “西西弗斯” Complex            [StrandKirschblüten]
+    12.1 “无尽之旅” ψ
+    12.2 “幻想乡” 宜居
+SI-13 天文钟  א                                [珞瑕]      
+SI-14
+SI-15 “幻痛” V                         [StrandKirschblüten]
+SI-16
+SI-17
+SI-18 “白夜”                                    [Ginkgo Marisco]
+SI-19 “他们不再老去”                       [StrandKirschblüten]
+SI-20 莽原 档案已变更                           [博美]
+SI-21
+SI-22 “倒悬的往生路” 死区                  [沛沛]
+SI-23 “县” ψ                                   [Ginkgo Marisco]
+SI-24 “山麓之道” 3                            [Ginkgo Marisco]
+SI-25 “未知空域” Φ                             [StrandKirschblüten]
+SI-26
+SI-27 “熙熙攘攘，我们的城市” 永生   [StrandKirschblüten]
+SI-28
+-----------------------------------stable
+SI-29
+SI-30 “超蓝之境”  ψ                            [雷司令]
+SI-35 "possibility" V                                [焱锴]
+SI-49 “暴雨” 3                                    [StrandKirschblüten]
+...
+SI-60
+-----------------------------------transition
+SI-61 黑色童话 ψ            [珞瑕]
+    61.1 真实 -1
+...
+SI-67
+SI-74  “逐日航迹” 0         [StrandKirschblüten]
+SI-91 “世外天堂” 不适用
+SI-100 "百年孤独" 永生            [StrandKirschblüten]
+SI-512 工厂群 2         [Cyaegha]
+...
+SI-900 地狱之上，凝视繁花 死区             [珞瑕]
+SI-909 “诞圣” “童话”           [StrandKirschblüten]
+    M.E.G.内注：生存难度 死区
+    T.M.S.内注：生存难度无法衡量，已启动认知滤网
+    Expander（B.A.U.T.）内注：十死无生
+-----------------------------------expanding
+//补充完作者后若是还有参数缺失，请在编号前标"#"
