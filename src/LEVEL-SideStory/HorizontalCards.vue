@@ -263,27 +263,25 @@ defineExpose({ getCurrentX: () => currentX, getMaxScroll: () => maxScroll })
 .horizontal-scroll-wrapper:active { cursor: grabbing; }
 .cards-track { display: flex; flex-wrap: nowrap; align-items: center; height: 100%; gap: 0; padding-left: 6vw; will-change: transform; user-select: none; -webkit-user-select: none; }
 
-.box { position: relative; display: flex; width: 340px; height: 420px; justify-content: center; align-items: center; margin: 0 40px; flex-shrink: 0; transition: margin-right 0.5s cubic-bezier(0.4, 0, 0.2, 1), transform 0.5s; cursor: pointer; }
+.box { position: relative; display: flex; width: clamp(240px, 16vw, 520px); height: clamp(300px, 20vw, 650px); justify-content: center; align-items: center; margin: 0 clamp(20px, 2vw, 50px); flex-shrink: 0; transition: margin-right 0.5s cubic-bezier(0.4, 0, 0.2, 1), transform 0.5s; cursor: pointer; }
 
 /* ── 拉出栏包裹层：统一控制宽度过渡，drawer 与按钮完美同步 ── */
 .drawer-wrapper {
   position: absolute;
   top: 0;
   height: 100%;
-  left: 210px;
+  left: 55%;
   z-index: -2;
   width: 0;
   transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* 悬浮时露出一小段，让按钮可见 */
 .box:hover .drawer-wrapper {
-  width: 70px;
+  width: clamp(50px, 4vw, 80px);
 }
 
-/* 展开时完整拉出，需同时满足 is-pinned + is-open，关闭时 is-open 先移除触发收回动画 */
 .box.is-pinned .drawer-wrapper.is-open {
-  width: 560px;
+  width: clamp(340px, 28vw, 680px);
 }
 
 /* ── 深灰色拉出面板 ── */
@@ -362,16 +360,16 @@ defineExpose({ getCurrentX: () => currentX, getMaxScroll: () => maxScroll })
 .pull-btn {
   position: absolute;
   top: 50%;
-  left: 85%;
+  left: 75%;
   z-index: -2;
   transform: translateY(-50%);
   opacity: 0;
-  padding: 14px 16px;
+  padding: clamp(8px, 1vw, 16px) clamp(10px, 1.2vw, 18px);
   background: rgba(40,40,42,0.92);
   color: #bbb;
   border: 1px solid rgba(255,255,255,0.12);
   border-radius: 0 6px 6px 0;
-  font-size: 1.3rem;
+  font-size: clamp(0.9rem, 1.4vw, 1.4rem);
   font-weight: 700;
   cursor: pointer;
   pointer-events: auto;
@@ -388,11 +386,10 @@ defineExpose({ getCurrentX: () => currentX, getMaxScroll: () => maxScroll })
 
 .box:hover .pull-btn {
   opacity: 1;
-  
 }
 .box.is-pinned .pull-btn {
   opacity: 1;
-  left: calc(98% - 0px);
+  left: 96%;
 }
 
 /* ── 渐变伪元素 ── */
@@ -405,7 +402,7 @@ defineExpose({ getCurrentX: () => currentX, getMaxScroll: () => maxScroll })
 .box.is-pinned::before,
 .box.is-pinned::after { transform: skewX(0deg); left: 20px; width: calc(100% - 90px); }
 
-.box.is-pinned { margin-right: 500px; }
+.box.is-pinned { margin-right: clamp(350px, 30vw, 700px); }
 
 /* 渐变色 */
 .box.color-1::before, .box.color-1::after { background: linear-gradient(315deg, #d4ff90, #00e2dc, #002059); }
@@ -430,29 +427,29 @@ defineExpose({ getCurrentX: () => currentX, getMaxScroll: () => maxScroll })
 .box.is-pinned .content { transform: translateX(-85px); padding: 48px 36px; width: calc(100% - 60px); }
 
 /* 文字 */
-.card-id { font-family: var(--font-family, 'Inter', sans-serif); font-size: 2.4rem; font-weight: 900; color: #fff; margin: 0 0 8px 0; letter-spacing: -0.04em; }
-.card-name { font-family: var(--font-family, 'Inter', sans-serif); font-size: 1rem; font-weight: 500; color: rgba(255,255,255,0.6); margin: 0 0 6px 0; letter-spacing: 0.03em; }
-.card-subtitle { font-family: var(--font-family, 'Inter', sans-serif); font-size: 0.8rem; font-weight: 400; color: rgba(255,255,255,0.35); margin: 0; letter-spacing: 0.05em; line-height: 1.5; white-space: pre-line; }
+.card-id { font-family: var(--font-family, 'Inter', sans-serif); font-size: clamp(1.2rem, 2.2vw, 2rem); font-weight: 900; color: #fff; margin: 0 0 8px 0; letter-spacing: -0.04em; }
+.card-name { font-family: var(--font-family, 'Inter', sans-serif); font-size: clamp(0.75rem, 1vw, 1.1rem); font-weight: 500; color: rgba(255,255,255,0.6); margin: 0 0 6px 0; letter-spacing: 0.03em; }
+.card-subtitle { font-family: var(--font-family, 'Inter', sans-serif); font-size: clamp(0.65rem, 0.85vw, 0.9rem); font-weight: 400; color: rgba(255,255,255,0.35); margin: 0; letter-spacing: 0.05em; line-height: 1.5; white-space: pre-line; }
 
 @media (max-width: 767px) {
-  .box { width: 260px; height: 340px; margin: 0 28px; }
+  .box { width: 240px; height: 300px; margin: 0 20px; }
   .cards-track { padding-left: 4vw; }
-  .card-id { font-size: 1.8rem; }
-  .card-name { font-size: 0.85rem; }
-  .content { padding: 24px 28px; }
-  .box:hover .content { transform: translateX(-28px); width: calc(100% - 50px); padding: 36px 28px; }
-  .box.is-pinned .content { transform: translateX(-60px); width: calc(100% - 50px); padding: 36px 28px; }
+  .card-id { font-size: 1.1rem; }
+  .card-name { font-size: 0.75rem; }
+  .content { padding: 16px 20px; }
+  .box:hover .content { transform: translateX(-20px); width: calc(100% - 40px); padding: 28px 24px; }
+  .box.is-pinned .content { transform: translateX(-40px); width: calc(100% - 40px); padding: 28px 24px; }
 
-  .drawer-wrapper { left: 150px; }
-  .box:hover .drawer-wrapper { width: 44px; }
-  .box.is-pinned .drawer-wrapper.is-open { width: 340px; }
+  .drawer-wrapper { left: 48%; }
+  .box:hover .drawer-wrapper { width: 40px; }
+  .box.is-pinned .drawer-wrapper.is-open { width: 260px; }
 
-  .drawer-track { padding: 0 48px 0 50px; gap: 10px; }
-  .chapter-card { width: 100px; height: 72px; }
-  .chapter-heading { font-size: 0.72rem; }
+  .drawer-track { padding: 0 28px 0 36px; gap: 8px; }
+  .chapter-card { width: 80px; height: 58px; }
+  .chapter-heading { font-size: 0.65rem; }
 
-  .pull-btn { padding: 10px 10px; font-size: 1rem; }
-  .box.is-pinned .pull-btn { left: calc(94% - 0px); }
-  .box.is-pinned { margin-right: 300px; }
+  .pull-btn { padding: 6px 8px; font-size: 0.85rem; left: 70%; }
+  .box.is-pinned .pull-btn { left: 94%; }
+  .box.is-pinned { margin-right: 200px; }
 }
 </style>

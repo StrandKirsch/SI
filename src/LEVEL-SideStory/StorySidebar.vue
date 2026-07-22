@@ -128,7 +128,12 @@ function toggleExpand(id) {
 
 function goToStory(id) {
   sessionStorage.setItem('skipSideStoryIntro', '1')
-  router.push(`/sidestory/${id}`)
+  const story = stories.find(s => s.id === id)
+  if (story && story.sections && story.sections.length > 1) {
+    router.push(`/sidestory/${id}/0`)
+  } else {
+    router.push(`/sidestory/${id}`)
+  }
 }
 
 function goToChapter(storyId, chapterIndex) {
