@@ -309,6 +309,7 @@ defineExpose({ getCurrentX: () => currentX, getMaxScroll: () => maxScroll })
   align-items: center;
   height: 100%;
   gap: 20px;
+  padding: 0 40px 0 80px;
   padding: 0 56px 0 100px;
   will-change: transform;
   user-select: none;
@@ -361,7 +362,7 @@ defineExpose({ getCurrentX: () => currentX, getMaxScroll: () => maxScroll })
 .pull-btn {
   position: absolute;
   top: 50%;
-  left: 70%;
+  left: 85%;
   z-index: -2;
   transform: translateY(-50%);
   opacity: 0;
@@ -387,6 +388,7 @@ defineExpose({ getCurrentX: () => currentX, getMaxScroll: () => maxScroll })
 
 .box:hover .pull-btn {
   opacity: 1;
+  
 }
 .box.is-pinned .pull-btn {
   opacity: 1;
@@ -441,16 +443,16 @@ defineExpose({ getCurrentX: () => currentX, getMaxScroll: () => maxScroll })
   .box:hover .content { transform: translateX(-28px); width: calc(100% - 50px); padding: 36px 28px; }
   .box.is-pinned .content { transform: translateX(-60px); width: calc(100% - 50px); padding: 36px 28px; }
 
-  .drawer-wrapper { left: 160px; }
-  .box:hover .drawer-wrapper { width: 50px; }
-  .box.is-pinned .drawer-wrapper.is-open { width: 380px; }
+  .drawer-wrapper { left: 150px; }
+  .box:hover .drawer-wrapper { width: 44px; }
+  .box.is-pinned .drawer-wrapper.is-open { width: 340px; }
 
-  .drawer-track { padding: 0 44px 0 16px; gap: 14px; }
-  .chapter-card { width: 130px; height: 80px; }
-  .chapter-heading { font-size: 0.78rem; }
+  .drawer-track { padding: 0 48px 0 50px; gap: 10px; }
+  .chapter-card { width: 100px; height: 72px; }
+  .chapter-heading { font-size: 0.72rem; }
 
-  .pull-btn { padding: 12px 12px; font-size: 1.1rem; }
-  .box.is-pinned .pull-btn { left: calc(100% + 4px); }
-  .box.is-pinned { margin-right: 320px; }
+  .pull-btn { padding: 10px 10px; font-size: 1rem; }
+  .box.is-pinned .pull-btn { left: calc(94% - 0px); }
+  .box.is-pinned { margin-right: 300px; }
 }
 </style>

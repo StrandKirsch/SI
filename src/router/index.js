@@ -29,11 +29,6 @@ const router = createRouter({
       name: 'ChapterReader',
       component: () => import('../LEVEL-SideStory/StoryTemplate.vue')
     },
-    {
-      path: '/demo-entry',
-      name: 'DemoEntry',
-      component: () => import('../LEVEL-SideStory/DemoEntry.vue')
-    }
   ]
 })
 

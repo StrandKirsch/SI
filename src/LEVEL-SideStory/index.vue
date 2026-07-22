@@ -282,9 +282,10 @@ onMounted(() => {
   gsap.set(img, {
     height: '100vh',
     width: 'auto',
-    transformOrigin: `${focalX / SVG_W * 100}% ${focalY / SVG_H * 100}%`,
+    transformOrigin: '75% 50%',
     scale: initScale,
     y: screenH * 1.1,
+    x: -0.25 * screenH * svgAspect,
     force3D: true,
   })
   img.style.willChange = 'transform'
@@ -345,11 +346,12 @@ onMounted(() => {
     ease: 'power3.out',
   })
 
-  // ── 阶段二：SVG 缩小至全屏，慢→快→缓停 ──
+  // ── 阶段二：SVG 缩小至全屏 + 水平居中，慢→快→慢 ──
   tl.to(img, {
     scale: 1,
+    x: 0,
     duration: 1.0,
-    ease: 'power2.inOut',
+    ease: 'power4.inOut',
   })
 
   // ── 阶段三：弧形从 X 轴向两侧展开 120°，快→慢 ──
@@ -364,45 +366,17 @@ onMounted(() => {
   })
 
   // ══════════════════════════════════════════
-  // 阶段四 a：时间轴线从弧形环向右延伸（无刻度）
+  // 阶段四：时间轴从 0 平滑延伸至最终长度 + SVG 弧形左移
   // ══════════════════════════════════════════
-  tl.call(() => {
-    gsap.set(timelineRef.value, { opacity: 1 })
-  })
-
-  const timelineExtendLen = screenW * 0.7
-
+  const svgFullWidth = screenH * svgAspect
+  const timelineFinalLen = Math.max(svgFullWidth * 1.5, screenW * 1.2)
+  tl.call(() => { gsap.set(timelineRef.value, { opacity: 1 }) })
   tl.to(timelineRef.value, {
-    attr: { x1: 0, y1: 0, x2: timelineExtendLen, y2: 0 },
-    duration: 1.0,
-    ease: 'power3.inOut',
+    attr: { x1: 0, y1: 0, x2: timelineFinalLen, y2: 0 },
+    duration: 2.5, ease: 'power4.in',
   }, '-=0.6')
-
-  // ══════════════════════════════════════════
-  // 阶段四 b：SVG + 弧形 + 时间轴同步左移出屏幕
-  // ══════════════════════════════════════════
-  const exitDistance = screenW + 200
-
-  // SVG 向左移出
-  tl.to(img, {
-    x: -exitDistance,
-    duration: 1.5,
-    ease: 'power3.inOut',
-  }, '-=0.8')
-
-  // 移动组同步左移
-  tl.to(movingGroupRef.value, {
-    x: -exitDistance + arcCenterX,
-    duration: 1.5,
-    ease: 'power3.inOut',
-  }, '<')
-
-  // 时间轴右端继续向右延伸（无刻度）
-  tl.to(timelineRef.value, {
-    attr: { x2: screenW * 1.8 },
-    duration: 1.5,
-    ease: 'power3.inOut',
-  }, '<')
+  tl.to(img, { x: -(svgFullWidth + 200), duration: 1.5, ease: 'power3.inOut' }, '-=1.5')
+  tl.to(movingGroupRef.value, { x: -(svgFullWidth + 200) + arcCenterX, duration: 1.5, ease: 'power3.inOut' }, '<')
 
   // ── 阶段五：移除 SVG 画像和弧形指示器 ──
   tl.call(() => {
@@ -770,8 +744,5 @@ function drawTicks(totalLen) {
     padding: 32px 24px;
   }
 
-  .arc-overlay {
-    display: none;
-  }
 }
 </style>

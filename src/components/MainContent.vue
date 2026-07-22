@@ -119,13 +119,24 @@ function initCenter() {
 // ── Grid data ──────────────────────────────────────
 const COLS = 5
 const ROWS = 5
-const CARD_W = 360
-const CARD_H = 480
-const GAP_X = 300
-const GAP_Y = 350
+const CARD_RATIO = 3 / 4  // width / height
 const MAX_VEL = 25
 const VEL_DECAY = 0.94
 const VEL_MIN = 0.15
+
+const cardW = ref(480)
+const cardH = ref(640)
+const gapX = ref(200)
+const gapY = ref(234)
+
+function calcCardSizes(containerWidth) {
+  const maxW = 800, minW = 260
+  const w = Math.max(minW, Math.min(maxW, Math.floor(containerWidth / 5.5)))
+  const gx = Math.floor(w * 0.42)
+  const h = Math.floor(w / CARD_RATIO)
+  const gy = Math.floor(gx * 1.17)
+  cardW.value = w; cardH.value = h; gapX.value = gx; gapY.value = gy
+}
 
 let uidCounter = 0
 const allCards = ref([])
@@ -140,10 +151,10 @@ function setRef(uid, el) {
 
 function buildGrid() {
   const cards = []
-  const stepX = CARD_W + GAP_X
-  const stepY = CARD_H + GAP_Y
-  totalW = COLS * stepX - GAP_X
-  totalH = ROWS * stepY - GAP_Y
+  const stepX = cardW.value + gapX.value
+  const stepY = cardH.value + gapY.value
+  totalW = COLS * stepX - gapX.value
+  totalH = ROWS * stepY - gapY.value
 
   const start = selectedStart.value
   for (let r = 0; r < ROWS; r++) {
@@ -163,16 +174,21 @@ function buildGrid() {
 }
 
 function wrapCard(card) {
-  if (card.x > totalW - CARD_W) card.x -= totalW + GAP_X
-  if (card.x < -CARD_W) card.x += totalW + GAP_X
-  if (card.y > totalH - CARD_H) card.y -= totalH + GAP_Y
-  if (card.y < -CARD_H) card.y += totalH + GAP_Y
+  if (card.x > totalW - cardW.value) card.x -= totalW + gapX.value
+  if (card.x < -cardW.value) card.x += totalW + gapX.value
+  if (card.y > totalH - cardH.value) card.y -= totalH + gapY.value
+  if (card.y < -cardH.value) card.y += totalH + gapY.value
 }
 
 function applyPositions() {
+  const w = cardW.value; const h = cardH.value
+  const idSize = Math.round(w * 0.0097) + 'rem'  // proportional to card width
   for (const card of allCards.value) {
     const el = cardRefs[card.uid]
     if (!el) continue
+    el.style.width = w + 'px'
+    el.style.height = h + 'px'
+    el.style.setProperty('--card-id-size', idSize)
     el.style.transform = `translate(${Math.round(card.x)}px, ${Math.round(card.y)}px)`
   }
 }
@@ -281,10 +297,29 @@ function checkTimelineOverflow() {
 }
 
 // ── Lifecycle ──────────────────────────────────────
+let cardResizeOb = null
+let resizeDebounce = null
+
 onMounted(async () => {
+  if (containerRef.value) {
+    calcCardSizes(containerRef.value.clientWidth)
+  }
   buildGrid()
   await nextTick()
   initCenter()
+
+  if (containerRef.value) {
+    cardResizeOb = new ResizeObserver(() => {
+      clearTimeout(resizeDebounce)
+      resizeDebounce = setTimeout(() => {
+        calcCardSizes(containerRef.value.clientWidth)
+        uidCounter = 0; cardRefs = {}; stopInertia()
+        buildGrid()
+        nextTick(() => initCenter())
+      }, 200)
+    })
+    cardResizeOb.observe(containerRef.value)
+  }
 
   if (timelineRef.value) {
     checkTimelineOverflow()
@@ -297,6 +332,7 @@ onBeforeUnmount(() => {
   onDragEnd()
   stopInertia()
   if (resizeObserver) resizeObserver.disconnect()
+  if (cardResizeOb) cardResizeOb.disconnect()
 })
 </script>
 
@@ -330,13 +366,9 @@ onBeforeUnmount(() => {
   position: absolute;
   left: 0;
   top: 0;
-  width: 360px;
-  height: 480px;
   border-radius: 16px;
   border: 1px solid rgba(0,0,0,0.08);
-  background: rgba(255,255,255,0.95);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  background: rgba(255,255,255,0.97);
   box-shadow: 0 4px 24px rgba(0,0,0,0.06);
   display: flex;
   flex-direction: column;
@@ -346,10 +378,14 @@ onBeforeUnmount(() => {
   cursor: pointer;
   flex-shrink: 0;
   transition: box-shadow 0.3s ease;
-  will-change: transform;
+  will-change: auto;
   opacity: 0.97;
   user-select: none;
   -webkit-user-select: none;
+  contain: layout style paint;
+}
+.photos.dragging .card {
+  will-change: transform;
 }
 .card:hover {
   box-shadow: 0 8px 36px rgba(0,0,0,0.14);
@@ -377,7 +413,7 @@ onBeforeUnmount(() => {
 
 .card-id {
   font-family: var(--font-family, 'Inter', sans-serif);
-  font-size: 3.5rem;
+  font-size: var(--card-id-size, 3.5rem);
   font-weight: 800;
   color: var(--color-black, #000);
   letter-spacing: -0.03em;
