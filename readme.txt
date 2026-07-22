@@ -19,3 +19,9 @@ git add .
 git commit -m "update"
 git push -f https://github.com/StrandKirsch/SI.git gh-pages
 cd ..
+网页进不去就
+刷新 DNS 缓存（最常用）
+Windows：打开命令提示符（CMD），执行：
+
+ipconfig /flushdns
+或者github重新挂载

@@ -182,7 +182,7 @@ function wrapCard(card) {
 
 function applyPositions() {
   const w = cardW.value; const h = cardH.value
-  const idSize = Math.round(w * 0.0097) + 'rem'  // proportional to card width
+  const idSize = Math.min(Math.round(w * 0.0097), 5) + 'rem'  // cap at 5rem for large screens
   for (const card of allCards.value) {
     const el = cardRefs[card.uid]
     if (!el) continue

@@ -96,24 +96,42 @@ async function onPullClick(index) {
   setTimeout(() => {
     calculateLimits()
     if (!wasOpen) {
-      // 展开时：确保面板完全可见，必要时向右滚动
+      // 展开时：确保卡片完全在视窗内，必要时调整位置
       const cardEl = trackRef.value?.children[index]
       if (cardEl) {
+        const cardLeft = cardEl.offsetLeft
         const cardStyle = window.getComputedStyle(cardEl)
-      const marginRight = parseFloat(cardStyle.marginRight) || 0
-      const cardRight = cardEl.offsetLeft + cardEl.offsetWidth + marginRight
-      const viewRight = currentX + wrapperRef.value.offsetWidth
-      if (cardRight > viewRight) {
-        targetX = Math.min(maxScroll, cardRight - wrapperRef.value.offsetWidth + 20)
-      }
+        const marginRight = parseFloat(cardStyle.marginRight) || 0
+        const cardRight = cardLeft + cardEl.offsetWidth + marginRight
+        const viewRight = currentX + wrapperRef.value.offsetWidth
+        // 右侧超出 → 向右滚动，留出足够空间展示拉出面板
+        if (cardRight > viewRight) {
+          targetX = Math.min(maxScroll, cardRight - wrapperRef.value.offsetWidth + 120)
+        }
+        // 左侧被裁切 → 向左滚动，留出边距
+        if (cardLeft < currentX) {
+          targetX = Math.max(0, cardLeft - 40)
+        }
       }
     }
     if (currentX > maxScroll) {
       targetX = maxScroll
     }
-    currentX = targetX
-    if (trackRef.value) trackRef.value.style.transform = `translateX(-${currentX}px)`
+    smoothScrollTo(targetX)
   }, 400)
+}
+
+// ── 平滑滚动到目标位置，避免硬跳 ──
+function smoothScrollTo(tx) {
+  if (animFrame) cancelAnimationFrame(animFrame)
+  animFrame = requestAnimationFrame(stepTo)
+  function stepTo() {
+    currentX += (tx - currentX) * 0.12
+    if (Math.abs(tx - currentX) < 0.1) currentX = tx
+    if (trackRef.value) trackRef.value.style.transform = `translateX(-${currentX}px)`
+    emit('scroll-x', currentX)
+    if (currentX !== tx) { animFrame = requestAnimationFrame(stepTo) } else { animFrame = null }
+  }
 }
 
 function startClosing(index) {
@@ -124,8 +142,8 @@ function startClosing(index) {
       closingIndex.value = null
       calculateLimits()
       if (currentX > maxScroll) {
-        targetX = maxScroll; currentX = maxScroll
-        if (trackRef.value) trackRef.value.style.transform = `translateX(-${maxScroll}px)`
+        targetX = maxScroll
+        smoothScrollTo(targetX)
       }
     }
   }, 520)
@@ -222,7 +240,7 @@ function handleResize() {
   clearTimeout(resizeTimer)
   resizeTimer = setTimeout(() => {
     calculateLimits()
-    if (currentX > maxScroll) { targetX = maxScroll; currentX = maxScroll; if (trackRef.value) trackRef.value.style.transform = `translateX(-${maxScroll}px)` }
+    if (currentX > maxScroll) { targetX = maxScroll; smoothScrollTo(targetX) }
   }, 100)
 }
 
@@ -236,7 +254,7 @@ onMounted(async () => {
   if (window.ResizeObserver && trackRef.value) {
     resizeObserver = new ResizeObserver(() => {
       calculateLimits()
-      if (currentX > maxScroll) { targetX = maxScroll; currentX = maxScroll; if (trackRef.value) trackRef.value.style.transform = `translateX(-${maxScroll}px)` }
+      if (currentX > maxScroll) { targetX = maxScroll; smoothScrollTo(targetX) }
     })
     resizeObserver.observe(trackRef.value)
   }
@@ -261,27 +279,27 @@ defineExpose({ getCurrentX: () => currentX, getMaxScroll: () => maxScroll })
 <style scoped>
 .horizontal-scroll-wrapper { position: relative; width: 100%; height: 100%; overflow: hidden; cursor: grab; }
 .horizontal-scroll-wrapper:active { cursor: grabbing; }
-.cards-track { display: flex; flex-wrap: nowrap; align-items: center; height: 100%; gap: 0; padding-left: 6vw; will-change: transform; user-select: none; -webkit-user-select: none; }
+.cards-track { display: flex; flex-wrap: nowrap; align-items: center; height: 100%; gap: 0; padding-left: 12vw; will-change: transform; user-select: none; -webkit-user-select: none; }
 
-.box { position: relative; display: flex; width: clamp(240px, 16vw, 520px); height: clamp(300px, 20vw, 650px); justify-content: center; align-items: center; margin: 0 clamp(20px, 2vw, 50px); flex-shrink: 0; transition: margin-right 0.5s cubic-bezier(0.4, 0, 0.2, 1), transform 0.5s; cursor: pointer; }
+.box { position: relative; display: flex; width: 340px; height: 420px; justify-content: center; align-items: center; margin: 0 40px; flex-shrink: 0; transition: margin-right 0.5s cubic-bezier(0.4, 0, 0.2, 1), transform 0.5s; cursor: pointer; }
 
 /* ── 拉出栏包裹层：统一控制宽度过渡，drawer 与按钮完美同步 ── */
 .drawer-wrapper {
   position: absolute;
   top: 0;
   height: 100%;
-  left: 55%;
+  left: 210px;
   z-index: -2;
   width: 0;
   transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .box:hover .drawer-wrapper {
-  width: clamp(50px, 4vw, 80px);
+  width: 70px;
 }
 
 .box.is-pinned .drawer-wrapper.is-open {
-  width: clamp(340px, 28vw, 680px);
+  width: 560px;
 }
 
 /* ── 深灰色拉出面板 ── */
@@ -360,16 +378,16 @@ defineExpose({ getCurrentX: () => currentX, getMaxScroll: () => maxScroll })
 .pull-btn {
   position: absolute;
   top: 50%;
-  left: 75%;
+  left: 85%;
   z-index: -2;
   transform: translateY(-50%);
   opacity: 0;
-  padding: clamp(8px, 1vw, 16px) clamp(10px, 1.2vw, 18px);
+  padding: 14px 16px;
   background: rgba(40,40,42,0.92);
   color: #bbb;
   border: 1px solid rgba(255,255,255,0.12);
   border-radius: 0 6px 6px 0;
-  font-size: clamp(0.9rem, 1.4vw, 1.4rem);
+  font-size: 1.3rem;
   font-weight: 700;
   cursor: pointer;
   pointer-events: auto;
@@ -389,7 +407,7 @@ defineExpose({ getCurrentX: () => currentX, getMaxScroll: () => maxScroll })
 }
 .box.is-pinned .pull-btn {
   opacity: 1;
-  left: 96%;
+  left: calc(98% - 0px);
 }
 
 /* ── 渐变伪元素 ── */
@@ -402,7 +420,7 @@ defineExpose({ getCurrentX: () => currentX, getMaxScroll: () => maxScroll })
 .box.is-pinned::before,
 .box.is-pinned::after { transform: skewX(0deg); left: 20px; width: calc(100% - 90px); }
 
-.box.is-pinned { margin-right: clamp(350px, 30vw, 700px); }
+.box.is-pinned { margin-right: 500px; }
 
 /* 渐变色 */
 .box.color-1::before, .box.color-1::after { background: linear-gradient(315deg, #d4ff90, #00e2dc, #002059); }
@@ -427,29 +445,29 @@ defineExpose({ getCurrentX: () => currentX, getMaxScroll: () => maxScroll })
 .box.is-pinned .content { transform: translateX(-85px); padding: 48px 36px; width: calc(100% - 60px); }
 
 /* 文字 */
-.card-id { font-family: var(--font-family, 'Inter', sans-serif); font-size: clamp(1.2rem, 2.2vw, 2rem); font-weight: 900; color: #fff; margin: 0 0 8px 0; letter-spacing: -0.04em; }
-.card-name { font-family: var(--font-family, 'Inter', sans-serif); font-size: clamp(0.75rem, 1vw, 1.1rem); font-weight: 500; color: rgba(255,255,255,0.6); margin: 0 0 6px 0; letter-spacing: 0.03em; }
-.card-subtitle { font-family: var(--font-family, 'Inter', sans-serif); font-size: clamp(0.65rem, 0.85vw, 0.9rem); font-weight: 400; color: rgba(255,255,255,0.35); margin: 0; letter-spacing: 0.05em; line-height: 1.5; white-space: pre-line; }
+.card-id { font-family: var(--font-family, 'Inter', sans-serif); font-size: 2.4rem; font-weight: 900; color: #fff; margin: 0 0 8px 0; letter-spacing: -0.04em; }
+.card-name { font-family: var(--font-family, 'Inter', sans-serif); font-size: 1rem; font-weight: 500; color: rgba(255,255,255,0.6); margin: 0 0 6px 0; letter-spacing: 0.03em; }
+.card-subtitle { font-family: var(--font-family, 'Inter', sans-serif); font-size: 0.8rem; font-weight: 400; color: rgba(255,255,255,0.35); margin: 0; letter-spacing: 0.05em; line-height: 1.5; white-space: pre-line; }
 
 @media (max-width: 767px) {
-  .box { width: 240px; height: 300px; margin: 0 20px; }
-  .cards-track { padding-left: 4vw; }
-  .card-id { font-size: 1.1rem; }
-  .card-name { font-size: 0.75rem; }
-  .content { padding: 16px 20px; }
-  .box:hover .content { transform: translateX(-20px); width: calc(100% - 40px); padding: 28px 24px; }
-  .box.is-pinned .content { transform: translateX(-40px); width: calc(100% - 40px); padding: 28px 24px; }
+  .box { width: 260px; height: 340px; margin: 0 28px; }
+  .cards-track { padding-left: 8vw; }
+  .card-id { font-size: 1.8rem; }
+  .card-name { font-size: 0.85rem; }
+  .content { padding: 24px 28px; }
+  .box:hover .content { transform: translateX(-28px); width: calc(100% - 50px); padding: 36px 28px; }
+  .box.is-pinned .content { transform: translateX(-60px); width: calc(100% - 50px); padding: 36px 28px; }
 
-  .drawer-wrapper { left: 48%; }
-  .box:hover .drawer-wrapper { width: 40px; }
-  .box.is-pinned .drawer-wrapper.is-open { width: 260px; }
+  .drawer-wrapper { left: 150px; }
+  .box:hover .drawer-wrapper { width: 44px; }
+  .box.is-pinned .drawer-wrapper.is-open { width: 340px; }
 
-  .drawer-track { padding: 0 28px 0 36px; gap: 8px; }
-  .chapter-card { width: 80px; height: 58px; }
-  .chapter-heading { font-size: 0.65rem; }
+  .drawer-track { padding: 0 48px 0 50px; gap: 10px; }
+  .chapter-card { width: 100px; height: 72px; }
+  .chapter-heading { font-size: 0.72rem; }
 
-  .pull-btn { padding: 6px 8px; font-size: 0.85rem; left: 70%; }
-  .box.is-pinned .pull-btn { left: 94%; }
-  .box.is-pinned { margin-right: 200px; }
+  .pull-btn { padding: 10px 10px; font-size: 1rem; }
+  .box.is-pinned .pull-btn { left: calc(94% - 0px); }
+  .box.is-pinned { margin-right: 300px; }
 }
 </style>
