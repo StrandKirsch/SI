@@ -8,8 +8,8 @@ git push origin main
 如果推送时报错，用强制推送：
 
 powershell
+
 git push -f origin main
-提交build
 cd E:\SI-backrooms-viewer
 npm run build
 cd dist
