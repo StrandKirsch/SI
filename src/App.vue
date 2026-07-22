@@ -5,6 +5,10 @@
 </template>
 
 <script setup>
+import portraitSrc from './assets/画像.svg'
+// 预加载大体积 SVG，确保进入 sidestory 时已缓存
+const preload = new Image()
+preload.src = portraitSrc
 </script>
 
 <style>

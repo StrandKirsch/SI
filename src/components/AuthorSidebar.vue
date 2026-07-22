@@ -4,8 +4,14 @@
       class="sidebar-toggle"
       @click="sidebarCollapsed = !sidebarCollapsed"
     >
-      <span v-if="sidebarCollapsed">&#9654;</span>
-      <span v-else>&#9664;</span>
+      <template v-if="isMobile">
+        <span v-if="sidebarCollapsed">&#9660;</span>
+        <span v-else>&#9650;</span>
+      </template>
+      <template v-else>
+        <span v-if="sidebarCollapsed">&#9654;</span>
+        <span v-else>&#9664;</span>
+      </template>
     </button>
 
     <div class="sidebar-inner" v-show="!sidebarCollapsed">
@@ -56,7 +62,7 @@ const isMobile = ref(false)
 
 function checkMobile() {
   isMobile.value = window.innerWidth <= 767
-  if (isMobile.value) sidebarCollapsed.value = false
+  if (isMobile.value) sidebarCollapsed.value = true
 }
 
 onMounted(() => {
@@ -253,39 +259,63 @@ function skipIntro() {
 /* ── Mobile ── */
 @media (max-width: 767px) {
   .author-sidebar {
-    position: relative;
+    position: sticky;
+    top: 0;
+    left: 0;
+    right: 0;
     width: 100%;
     min-width: unset;
-    min-height: auto;
-    padding: 12px 16px;
+    min-height: 44px;
+    max-height: 50vh;
+    height: auto;
+    padding: 0;
     border-right: none;
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    transition: none;
+    overflow-y: auto;
+    z-index: 100;
+    transition: max-height 0.35s ease;
   }
 
   .author-sidebar.collapsed {
     width: 100%;
     min-width: unset;
-    min-height: auto;
-    padding: 8px 16px;
+    min-height: unset;
+    height: auto;
+    max-height: 44px;
+    padding: 0;
+    overflow: hidden;
+  }
+
+  .author-sidebar.collapsed .sidebar-inner {
+    display: none;
   }
 
   .sidebar-toggle {
-    display: block;
-    position: absolute;
-    top: 10px;
-    right: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    padding: 8px 16px;
     font-size: 0.85rem;
-    padding: 6px 10px;
+    background: rgba(0, 0, 0, 0.92);
+    border: none;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    color: rgba(255, 255, 255, 0.5);
+    cursor: pointer;
+    position: sticky;
+    top: 0;
+    right: auto;
+    z-index: 2;
   }
 
   .sidebar-inner {
-    margin-top: 4px;
+    margin-top: 0;
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
     align-items: flex-start;
-    padding-right: 36px;
+    padding: 12px 16px;
+    padding-right: 16px;
   }
 
   .author-block {

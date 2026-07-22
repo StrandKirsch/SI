@@ -1,4 +1,4 @@
-<template>
+<!-- <template>
   <div class="demo-page">
     <div class="size-indicator">{{ screenW }} × {{ screenH }}</div>
 
@@ -394,4 +394,4 @@ onBeforeUnmount(() => {
   top: 16.666vh; height: 66.666vh;
   z-index: 8; display: flex; align-items: center;
 }
-</style>
+</style> -->

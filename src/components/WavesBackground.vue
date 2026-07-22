@@ -17,8 +17,8 @@ const containerRef = ref(null)
 const svgRef = ref(null)
 
 // ── Configuration ──────────────────────────────────
-const X_GAP = 10
-const Y_GAP = 30
+const X_GAP = 13
+const Y_GAP = 32
 const WAVE_AMP = 12
 const WAVE_COS_AMP = 32
 const WAVE_SIN_AMP = 16

@@ -30,7 +30,12 @@
     </div>
 
     <!-- 范围选择时间轴 -->
-    <div class="timeline" ref="timelineRef" :class="{ scrollable: needsScroll }">
+    <div
+      class="timeline"
+      ref="timelineRef"
+      :class="{ scrollable: needsScroll }"
+      @wheel.stop.prevent="onTimelineWheel"
+    >
       <button
         v-for="range in ranges"
         :key="range.start"
@@ -296,6 +301,15 @@ function checkTimelineOverflow() {
   needsScroll.value = el.scrollWidth > el.clientWidth + 2
 }
 
+// ── Timeline horizontal scroll (wheel → horizontal) ──
+function onTimelineWheel(e) {
+  const el = timelineRef.value
+  if (!el || el.scrollWidth <= el.clientWidth + 1) return
+  // 始终阻止默认纵向滚动，统一转换为横向滚动
+  e.preventDefault()
+  el.scrollLeft += e.deltaY || e.deltaX || 0
+}
+
 // ── Lifecycle ──────────────────────────────────────
 let cardResizeOb = null
 let resizeDebounce = null
@@ -467,6 +481,9 @@ onBeforeUnmount(() => {
   overflow-x: auto;
   scrollbar-width: none;
   -ms-overflow-style: none;
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+  touch-action: pan-x pinch-zoom;
 }
 .timeline::-webkit-scrollbar {
   display: none;

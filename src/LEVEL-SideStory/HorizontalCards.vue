@@ -22,6 +22,8 @@
               class="drawer-track"
               :data-drawer-index="index"
               @wheel.stop.prevent="onDrawerWheel($event, index)"
+              @touchstart.stop="onDrawerTouchStart($event, index)"
+              @touchmove.stop="onDrawerTouchMove($event, index)"
             >
               <div
                 v-for="(section, si) in card.sections"
@@ -179,6 +181,24 @@ function onWheel(e) {
   if (!animFrame) animFrame = requestAnimationFrame(updatePosition)
 }
 
+// ── 触屏支持 ──
+let touchStartY = 0, touchStartX = 0
+
+function onTouchStart(e) {
+  if (e.touches.length === 1) {
+    touchStartY = e.touches[0].clientY
+    touchStartX = targetX
+  }
+}
+
+function onTouchMove(e) {
+  if (e.touches.length === 1) {
+    const dy = touchStartY - e.touches[0].clientY
+    targetX = Math.max(0, Math.min(touchStartX + dy, maxScroll))
+    if (!animFrame) animFrame = requestAnimationFrame(updatePosition)
+  }
+}
+
 function updatePosition() {
   currentX += (targetX - currentX) * 0.12
   if (Math.abs(targetX - currentX) < 0.05) currentX = targetX
@@ -189,26 +209,56 @@ function updatePosition() {
 
 // ── 拉出栏内横向滚动 ──
 const drawerScrolls = {}
+const drawerTouchStarts = {}
 
 function onDrawerWheel(e, index) {
   e.preventDefault()
   e.stopPropagation()
-  const track = e.currentTarget
-  if (!track) return
+  drawerScroll(e.deltaY, index, e.currentTarget)
+}
 
+function drawerScroll(delta, index, track) {
   const key = String(index)
   if (!drawerScrolls[key]) {
     drawerScrolls[key] = { current: 0, target: 0, max: 0, frame: null }
   }
   const s = drawerScrolls[key]
-
   s.max = Math.max(0, track.scrollWidth - track.parentElement.clientWidth)
-
-  s.target += e.deltaY
+  s.target += delta
   s.target = Math.max(0, Math.min(s.target, s.max))
-
   if (!s.frame) {
     s.frame = requestAnimationFrame(() => animateDrawer(track, s))
+  }
+}
+
+function onDrawerTouchStart(e, index) {
+  e.stopPropagation()
+  if (e.touches.length === 1) {
+    const key = String(index)
+    if (!drawerScrolls[key]) {
+      drawerScrolls[key] = { current: 0, target: 0, max: 0, frame: null }
+    }
+    drawerScrolls[key].max = Math.max(0, e.currentTarget.scrollWidth - e.currentTarget.parentElement.clientWidth)
+    drawerTouchStarts[index] = {
+      y: e.touches[0].clientY,
+      target: drawerScrolls[key].target,
+    }
+  }
+}
+
+function onDrawerTouchMove(e, index) {
+  e.stopPropagation()
+  const start = drawerTouchStarts[index]
+  if (!start || e.touches.length !== 1) return
+  const dy = start.y - e.touches[0].clientY
+  const key = String(index)
+  if (!drawerScrolls[key]) {
+    drawerScrolls[key] = { current: 0, target: 0, max: 0, frame: null }
+  }
+  const s = drawerScrolls[key]
+  s.target = Math.max(0, Math.min(start.target + dy, s.max))
+  if (!s.frame) {
+    s.frame = requestAnimationFrame(() => animateDrawer(e.currentTarget, s))
   }
 }
 
@@ -248,7 +298,11 @@ onMounted(async () => {
   await nextTick()
   calculateLimits()
   const el = wrapperRef.value
-  if (el) el.addEventListener('wheel', onWheel, { passive: false })
+  if (el) {
+    el.addEventListener('wheel', onWheel, { passive: false })
+    el.addEventListener('touchstart', onTouchStart, { passive: true })
+    el.addEventListener('touchmove', onTouchMove, { passive: true })
+  }
   window.addEventListener('resize', handleResize)
   document.addEventListener('click', onDocumentClick)
   if (window.ResizeObserver && trackRef.value) {
@@ -262,7 +316,11 @@ onMounted(async () => {
 
 onBeforeUnmount(() => {
   const el = wrapperRef.value
-  if (el) el.removeEventListener('wheel', onWheel)
+  if (el) {
+    el.removeEventListener('wheel', onWheel)
+    el.removeEventListener('touchstart', onTouchStart)
+    el.removeEventListener('touchmove', onTouchMove)
+  }
   window.removeEventListener('resize', handleResize)
   document.removeEventListener('click', onDocumentClick)
   clearTimeout(resizeTimer)

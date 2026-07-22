@@ -389,6 +389,10 @@ watch(() => route.params.chapterIndex, (newVal) => {
     flex-direction: column;
   }
 
+  .story-main {
+    padding-top: 44px;
+  }
+
   .story-content {
     padding: 24px 16px 60px;
   }

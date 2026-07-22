@@ -171,8 +171,14 @@ function onResize() {
 
 // ── 侧边栏滑入动画 ──
 function showSidebar() {
-  if (storySidebarRef.value?.$el) {
-    gsap.to(storySidebarRef.value.$el, {
+  const el = storySidebarRef.value?.$el
+  if (!el) return
+  if (window.innerWidth <= 767) {
+    // 移动端：入场动画完成后渐显收起状态的侧边栏
+    gsap.set(el, { x: 0 })
+    gsap.fromTo(el, { opacity: 0 }, { opacity: 1, duration: 0.4, ease: 'power2.out' })
+  } else {
+    gsap.to(el, {
       x: 0,
       duration: 0.6,
       ease: 'power3.out',
@@ -198,6 +204,9 @@ onMounted(() => {
   // 侧边栏初始隐藏在屏幕左侧外
   if (storySidebarRef.value?.$el) {
     gsap.set(storySidebarRef.value.$el, { x: -260 })
+    if (window.innerWidth <= 767) {
+      gsap.set(storySidebarRef.value.$el, { x: 0, opacity: 0 })
+    }
   }
 
   // 从故事页返回时跳过入场动画，直接展示最终状态
@@ -734,6 +743,10 @@ function drawTicks(totalLen) {
 @media (max-width: 767px) {
   .story-layout {
     flex-direction: column;
+  }
+
+  .story-main {
+    padding-top: 44px;
   }
 
   .sidestory-content {

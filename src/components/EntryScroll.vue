@@ -56,24 +56,34 @@ function showCards() {
     clearProps: 'opacity',
   })
   if (mainSidebarRef.value?.$el) {
-    gsap.to(mainSidebarRef.value.$el, {
-      x: 0,
-      duration: 0.8,
-      ease: 'power3.out',
-    })
+    if (window.innerWidth <= 767) {
+      gsap.fromTo(mainSidebarRef.value.$el, { opacity: 0 }, { opacity: 1, duration: 0.4, ease: 'power2.out' })
+    } else {
+      gsap.to(mainSidebarRef.value.$el, {
+        x: 0,
+        duration: 0.8,
+        ease: 'power3.out',
+      })
+    }
   }
 }
 
 // ── Sidebar → SideStory 过渡动画 ──────────────
 async function onNavigate() {
-  // 1. 侧边栏缩回 + 向左滑出
+  // 1. 侧边栏缩回 + 退出动画
   mainSidebarRef.value?.collapse()
   if (mainSidebarRef.value?.$el) {
-    gsap.to(mainSidebarRef.value.$el, {
-      x: -260,
-      duration: 0.35,
-      ease: 'power2.in',
-    })
+    if (window.innerWidth <= 767) {
+      gsap.to(mainSidebarRef.value.$el, {
+        y: -80, opacity: 0,
+        duration: 0.35, ease: 'power2.in',
+      })
+    } else {
+      gsap.to(mainSidebarRef.value.$el, {
+        x: -260,
+        duration: 0.35, ease: 'power2.in',
+      })
+    }
   }
   await new Promise(r => setTimeout(r, 350))
 
@@ -92,9 +102,13 @@ onMounted(() => {
   }
   window.scrollTo(0, 0)
 
-  // 侧边栏初始隐藏在屏幕左侧外
+  // 侧边栏初始隐藏
   if (mainSidebarRef.value?.$el) {
-    gsap.set(mainSidebarRef.value.$el, { x: -260 })
+    if (window.innerWidth <= 767) {
+      gsap.set(mainSidebarRef.value.$el, { x: 0, opacity: 0 })
+    } else {
+      gsap.set(mainSidebarRef.value.$el, { x: -260 })
+    }
   }
 
   if (!spacerRef.value || !siRef.value) return
@@ -125,12 +139,16 @@ onMounted(() => {
       clearProps: 'opacity',
     })
     if (mainSidebarRef.value?.$el) {
-      gsap.to(mainSidebarRef.value.$el, {
-        x: 0,
-        duration: 0.8,
-        ease: 'power3.out',
-        delay: 0.3,
-      })
+      if (window.innerWidth <= 767) {
+        gsap.fromTo(mainSidebarRef.value.$el, { opacity: 0 }, { opacity: 1, duration: 0.4, ease: 'power2.out', delay: 0.3 })
+      } else {
+        gsap.to(mainSidebarRef.value.$el, {
+          x: 0,
+          duration: 0.8,
+          ease: 'power3.out',
+          delay: 0.3,
+        })
+      }
     }
     return
   }
