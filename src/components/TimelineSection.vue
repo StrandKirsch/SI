@@ -87,6 +87,8 @@ onMounted(() => {
   padding: 0 24px;
   background: var(--bg-deep);
   z-index: 10;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .track {

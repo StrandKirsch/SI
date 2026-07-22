@@ -36,6 +36,13 @@ html, body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   background: var(--color-black);
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+#app * {
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 /* 全局隐藏横向滚动条 */

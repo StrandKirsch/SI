@@ -1,30 +1,42 @@
 <template>
-  <div class="page-wrapper">
-    <div class="spacer" ref="spacerRef"></div>
+  <div class="home-layout">
+    <MainSidebar ref="mainSidebarRef" @navigate="onNavigate" />
 
-    <div class="content">
-      <WavesBackground />
-      <div class="cards-wrapper" ref="cardsRef">
-        <MainContent />
+    <div class="home-main" :class="{ 'fade-out': isFadingOut }">
+      <div class="page-wrapper">
+        <div class="spacer" ref="spacerRef"></div>
+
+        <div class="content">
+          <WavesBackground />
+          <div class="cards-wrapper" ref="cardsRef">
+            <MainContent />
+          </div>
+        </div>
+
+        <div class="overlay" ref="overlayRef">
+          <h2 class="si" ref="siRef">SI</h2>
+          <div class="hint" ref="hintRef">&darr; Scroll down to enter</div>
+        </div>
       </div>
-    </div>
-
-    <div class="overlay" ref="overlayRef">
-      <h2 class="si" ref="siRef">SI</h2>
-      <div class="hint" ref="hintRef">&darr; Scroll down to enter</div>
     </div>
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted, onBeforeUnmount } from 'vue'
+import { useRouter } from 'vue-router'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { ScrollToPlugin } from 'gsap/ScrollToPlugin'
 import WavesBackground from './WavesBackground.vue'
 import MainContent from './MainContent.vue'
+import MainSidebar from './MainSidebar.vue'
 
 gsap.registerPlugin(ScrollTrigger, ScrollToPlugin)
+
+const router = useRouter()
+const mainSidebarRef = ref(null)
+const isFadingOut = ref(false)
 
 const spacerRef = ref(null)
 const overlayRef = ref(null)
@@ -35,14 +47,43 @@ const cardsRef = ref(null)
 const targetScale = window.innerWidth >= 768 ? 800 : 500
 let tl = null
 
-// 显示卡片的函数
-const showCards = () => {
+// 侧边栏滑入 + 卡片渐显（同步进行）
+function showCards() {
   gsap.to(cardsRef.value, {
     opacity: 1,
     duration: 1,
     ease: 'power2.out',
-    clearProps: 'opacity'
+    clearProps: 'opacity',
   })
+  if (mainSidebarRef.value?.$el) {
+    gsap.to(mainSidebarRef.value.$el, {
+      x: 0,
+      duration: 0.8,
+      ease: 'power3.out',
+    })
+  }
+}
+
+// ── Sidebar → SideStory 过渡动画 ──────────────
+async function onNavigate() {
+  // 1. 侧边栏缩回 + 向左滑出
+  mainSidebarRef.value?.collapse()
+  if (mainSidebarRef.value?.$el) {
+    gsap.to(mainSidebarRef.value.$el, {
+      x: -260,
+      duration: 0.35,
+      ease: 'power2.in',
+    })
+  }
+  await new Promise(r => setTimeout(r, 350))
+
+  // 2. 背景 + 卡片渐隐
+  isFadingOut.value = true
+  await new Promise(r => setTimeout(r, 500))
+
+  // 3. 跳转
+  sessionStorage.setItem('skipIntro', '1')
+  router.push('/sidestory')
 }
 
 onMounted(() => {
@@ -50,6 +91,11 @@ onMounted(() => {
     history.scrollRestoration = 'manual'
   }
   window.scrollTo(0, 0)
+
+  // 侧边栏初始隐藏在屏幕左侧外
+  if (mainSidebarRef.value?.$el) {
+    gsap.set(mainSidebarRef.value.$el, { x: -260 })
+  }
 
   if (!spacerRef.value || !siRef.value) return
 
@@ -69,15 +115,23 @@ onMounted(() => {
     gsap.set(siRef.value, { opacity: 0 })
     gsap.set(hintRef.value, { opacity: 0, display: 'none' })
 
-    // 卡片渐显动画
+    // 卡片渐显 + 侧边栏滑入
     gsap.set(cardsRef.value, { opacity: 0 })
     gsap.to(cardsRef.value, {
       opacity: 1,
       duration: 1,
       ease: 'power2.out',
       delay: 0.3,
-      clearProps: 'opacity'
+      clearProps: 'opacity',
     })
+    if (mainSidebarRef.value?.$el) {
+      gsap.to(mainSidebarRef.value.$el, {
+        x: 0,
+        duration: 0.8,
+        ease: 'power3.out',
+        delay: 0.3,
+      })
+    }
     return
   }
 
@@ -188,6 +242,24 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
+/* ── Home layout: sidebar + main ── */
+.home-layout {
+  display: flex;
+  min-height: 100vh;
+  background: var(--color-off-white, #f7f7f7);
+}
+
+.home-main {
+  flex: 1;
+  min-width: 0;
+  transition: opacity 0.5s ease;
+}
+
+.home-main.fade-out {
+  opacity: 0;
+  pointer-events: none;
+}
+
 .page-wrapper {
   position: relative;
 }
@@ -230,6 +302,8 @@ onBeforeUnmount(() => {
   text-transform: uppercase;
   margin: 0;
   transform-origin: center;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .cards-wrapper {
@@ -251,6 +325,14 @@ onBeforeUnmount(() => {
   color: rgba(255, 255, 255, 0.6);
   letter-spacing: 0.08em;
   text-transform: uppercase;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+@media (max-width: 767px) {
+  .home-layout {
+    flex-direction: column;
+  }
 }
 </style>
 

@@ -13,7 +13,7 @@ SI-4 薄雾迷宫 2                              [珞瑕]
 SI-5 冷却，直至荒凉 4                    [珞瑕]
     5.1 工业热地 “开工！”
 SI-6 月升·月落 2e                            [珞瑕]
-SI-7 墨中人                                    [StrandKirschblüten  ，珞瑕  ，沛沛 ]
+SI-7 墨中人                                    [StrandKirschblüten]
 SI-8 风暴脉搏 2                                [StrandKirschblüten]
 SI-9 “奇迹之海” 3 to 死区            [StrandKirschblüten]
 SI-10 出塞                       [StrandKirschblüten]
@@ -37,7 +37,7 @@ SI-23 “县” ψ                                   [Ginkgo Marisco]
 SI-24 “山麓之道” 3                            [Ginkgo Marisco]
 SI-25 “未知空域” Φ                             [StrandKirschblüten]
 SI-26
-SI-27 “熙熙攘攘，我们的城市” 永生   [StrandKirschblüten]
+SI-27 
 SI-28
 -----------------------------------stable
 SI-29

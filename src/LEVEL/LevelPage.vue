@@ -1,7 +1,7 @@
 <template>
   <div class="level-page">
-    <button class="back-btn" @click="goBack">&larr; Back to Index</button>
     <div class="level-content" v-if="level">
+      <button class="back-btn" @click="goBack">&larr; Back to Index</button>
       <h1 class="level-title">SI-{{ level.id }}</h1>
       <p class="level-name">{{ level.name }}</p>
       <p class="level-subtitle">{{ level.subtitle }}</p>
@@ -52,6 +52,10 @@
           </ul>
         </div>
       </div>
+
+      <div class="level-footer">
+        <button class="top-btn" @click="scrollToTop">&#9650; 回到顶部</button>
+      </div>
     </div>
 
     <!-- Loading -->
@@ -84,6 +88,10 @@ function loadLevel() {
     return
   }
   level.value = found
+}
+
+function scrollToTop() {
+  window.scrollTo({ top: 0, behavior: 'smooth' })
 }
 
 function goBack() {
@@ -251,6 +259,34 @@ onMounted(() => {
   color: rgba(0, 0, 0, 0.6);
   padding: 4px 0;
   border-bottom: 1px solid rgba(0, 0, 0, 0.03);
+}
+
+/* ── 底部回到顶部 ── */
+.level-footer {
+  max-width: 800px;
+  margin: 40px auto 0;
+  text-align: center;
+}
+
+.top-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 24px;
+  background: rgba(0, 0, 0, 0.06);
+  color: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: var(--radius-sm, 8px);
+  font-family: var(--font-family, 'Inter', sans-serif);
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.top-btn:hover {
+  background: rgba(0, 0, 0, 0.85);
+  color: #fff;
 }
 
 /* Loading */

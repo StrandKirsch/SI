@@ -3,7 +3,7 @@ import { useRouter } from 'vue-router'
 import LevelPage from './LevelPage.vue'
 import AuthorSidebar from '../components/AuthorSidebar.vue'
 
-const levelModules = import.meta.glob('./Level[0-9]*.vue')
+const levelModules = import.meta.glob('./Levels/Level[0-9]*.vue')
 
 export default defineComponent({
   name: 'LevelLoader',
@@ -19,7 +19,7 @@ export default defineComponent({
       loading.value = true
       component.value = null
 
-      const key = `./Level${id}.vue`
+      const key = `./Levels/Level${id}.vue`
       const loader = levelModules[key]
 
       if (loader) {

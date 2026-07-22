@@ -1,7 +1,7 @@
 <template>
   <div class="level-page">
-    <button class="back-btn" @click="goBack">&larr; Back to Index</button>
     <div class="level-content">
+      <button class="back-btn" @click="goBack">&larr; Back</button>
       <h1 class="level-title">SI-{{ id }}</h1>
       <p class="level-name">{{ name }}</p>
 
@@ -18,6 +18,10 @@
       </div>
 
       <p class="level-desc">This is a template for Level {{ id }}. Customize this page by adding your own content, images, animations, or any other elements.</p>
+
+      <div class="level-footer">
+        <button class="top-btn" @click="scrollToTop">&#9650; 回到顶部</button>
+      </div>
     </div>
   </div>
 </template>
@@ -32,6 +36,10 @@ defineProps({
 })
 
 const router = useRouter()
+
+function scrollToTop() {
+  window.scrollTo({ top: 0, behavior: 'smooth' })
+}
 
 function goBack() {
   sessionStorage.setItem('skipIntro', '1')
@@ -48,6 +56,8 @@ function goBack() {
 
 .back-btn {
   display: inline-flex;
+  position: relative;
+  z-index: 20;
   align-items: center;
   gap: 8px;
   padding: 12px 24px;
@@ -111,6 +121,33 @@ function goBack() {
   line-height: 1.7;
   color: rgba(0, 0, 0, 0.7);
   margin-top: 40px;
+}
+
+/* ── 底部回到顶部 ── */
+.level-footer {
+  margin-top: 40px;
+  text-align: center;
+}
+
+.top-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 24px;
+  background: rgba(0, 0, 0, 0.06);
+  color: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: var(--radius-sm, 8px);
+  font-family: var(--font-family, 'Inter', sans-serif);
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.top-btn:hover {
+  background: rgba(0, 0, 0, 0.85);
+  color: #fff;
 }
 
 @media (max-width: 767px) {

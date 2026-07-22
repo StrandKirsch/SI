@@ -13,6 +13,26 @@ const router = createRouter({
       name: 'Level',
       component: () => import('../LEVEL/index.js'),
       props: true
+    },
+    {
+      path: '/sidestory',
+      name: 'SideStory',
+      component: () => import('../LEVEL-SideStory/index.vue')
+    },
+    {
+      path: '/sidestory/:storyId',
+      name: 'StoryReader',
+      component: () => import('../LEVEL-SideStory/StoryTemplate.vue')
+    },
+    {
+      path: '/sidestory/:storyId/:chapterIndex',
+      name: 'ChapterReader',
+      component: () => import('../LEVEL-SideStory/StoryTemplate.vue')
+    },
+    {
+      path: '/demo-entry',
+      name: 'DemoEntry',
+      component: () => import('../LEVEL-SideStory/DemoEntry.vue')
     }
   ]
 })

@@ -96,10 +96,13 @@ function skipIntro() {
 
 <style scoped>
 .author-sidebar {
-  position: relative;
+  position: fixed;
+  top: 0;
+  left: 0;
   width: 260px;
   min-width: 260px;
-  min-height: 100vh;
+  height: 100vh;
+  max-height: 100vh;
   background: rgba(0, 0, 0, 0.92);
   border-right: 1px solid rgba(255, 255, 255, 0.06);
   color: #ccc;
@@ -107,6 +110,7 @@ function skipIntro() {
   padding: 32px 20px 40px;
   z-index: 10;
   transition: width 0.3s ease, min-width 0.3s ease, padding 0.3s ease;
+  overflow-y: auto;
 }
 
 .sidebar-inner {

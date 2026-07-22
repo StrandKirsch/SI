@@ -348,6 +348,8 @@ onBeforeUnmount(() => {
   transition: box-shadow 0.3s ease;
   will-change: transform;
   opacity: 0.97;
+  user-select: none;
+  -webkit-user-select: none;
 }
 .card:hover {
   box-shadow: 0 8px 36px rgba(0,0,0,0.14);
@@ -450,6 +452,8 @@ onBeforeUnmount(() => {
   letter-spacing: 0.03em;
   transition: all 0.2s ease;
   white-space: nowrap;
+  user-select: none;
+  -webkit-user-select: none;
 }
 .range-btn:hover {
   background: rgba(0,0,0,0.05);
