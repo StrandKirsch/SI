@@ -21,6 +21,7 @@
             <div
               class="drawer-track"
               :data-drawer-index="index"
+              ref="drawerTrackRefs"
               @wheel.stop.prevent="onDrawerWheel($event, index)"
               @touchstart.stop="onDrawerTouchStart($event, index)"
               @touchmove.stop="onDrawerTouchMove($event, index)"
@@ -79,6 +80,16 @@ function onChapterClick(card, chapterIndex) {
 const pinnedIndex = ref(null)   // drawer 完全展开
 const closingIndex = ref(null)  // drawer 收回中（卡片保持悬浮样式）
 
+// ── 获取抽屉栏宽度 ──
+function getDrawerWidth(index) {
+  const card = props.cards[index]
+  if (!card?.sections?.length) return 0
+  
+  // 根据屏幕宽度返回不同的抽屉宽度
+  const isMobile = window.innerWidth <= 767
+  return isMobile ? 340 : 560
+}
+
 async function onPullClick(index) {
   const card = props.cards[index]
   if (!card?.sections?.length) return
@@ -96,37 +107,58 @@ async function onPullClick(index) {
     closingIndex.value = null
     pinnedIndex.value = index
   }
+  
   // 等待 CSS transition 完成后再重算边界
   setTimeout(() => {
     calculateLimits()
     if (!wasOpen) {
-      // 展开时：确保卡片完全在视窗内，必要时调整位置
+      // 展开时：确保卡片完全在视窗内
       const cardEl = trackRef.value?.children[index]
       if (cardEl) {
+        const wrapperWidth = wrapperRef.value.offsetWidth
         const cardLeft = cardEl.offsetLeft
-        const cardStyle = window.getComputedStyle(cardEl)
-        const marginRight = parseFloat(cardStyle.marginRight) || 0
-        const cardRight = cardLeft + cardEl.offsetWidth + marginRight
-        const viewRight = currentX + wrapperRef.value.offsetWidth
-        // 右侧超出 → 向右滚动，留出足够空间展示拉出面板
+        const cardWidth = cardEl.offsetWidth
+        const drawerWidth = getDrawerWidth(index)
+        const marginRight = 40 // 卡片右边距
+        const totalWidth = cardWidth + drawerWidth + marginRight
+        
+        // 计算卡片右侧需要的空间（包含抽屉栏）
+        const cardRight = cardLeft + totalWidth
+        
+        // 当前可见区域
+        const viewLeft = currentX
+        const viewRight = currentX + wrapperWidth
+        
+        // 计算目标滚动位置，让卡片完整可见
+        let targetScroll = currentX
+        
+        // 如果卡片右侧超出视口，向右滚动
         if (cardRight > viewRight) {
-          targetX = Math.min(maxScroll, cardRight - wrapperRef.value.offsetWidth + 120)
+          targetScroll = Math.min(maxScroll, cardRight - wrapperWidth + 40)
         }
-        // 左侧被裁切 → 向左滚动，留出边距
-        if (cardLeft < currentX) {
-          targetX = Math.max(0, cardLeft - 40)
+        
+        // 如果卡片左侧被裁切，向左滚动
+        if (cardLeft < viewLeft) {
+          targetScroll = Math.max(0, cardLeft - 20)
         }
-        // 移动端：仅滚动到面板左端可见，偏向左侧展示第一章卡片
+        
+        // 移动端特殊处理
         if (window.innerWidth <= 767) {
-          const panelLeft = cardLeft + cardEl.offsetWidth - wrapperRef.value.offsetWidth + 100
-          targetX = Math.min(maxScroll, Math.max(targetX, panelLeft))
+          // 确保抽屉栏左侧有足够空间显示第一章
+          const drawerLeft = cardLeft + cardWidth - 60
+          if (drawerLeft < viewLeft) {
+            targetScroll = Math.max(0, drawerLeft - 20)
+          }
         }
+        
+        targetX = Math.max(0, Math.min(targetScroll, maxScroll))
+        smoothScrollTo(targetX)
       }
     }
     if (currentX > maxScroll) {
       targetX = maxScroll
+      smoothScrollTo(targetX)
     }
-    smoothScrollTo(targetX)
   }, 400)
 }
 
@@ -188,25 +220,52 @@ function onWheel(e) {
   if (!animFrame) animFrame = requestAnimationFrame(updatePosition)
 }
 
-// ── 触屏支持（左右滑动）──
-let touchStartX = 0, touchStartScrollX = 0
+// ── 修复：改进触摸事件处理 ──
+let touchStartX = 0
+let touchStartY = 0
+let touchStartScrollX = 0
 let touchMoved = false
+let isDraggingDrawer = false // 标记是否在拖拽抽屉栏
 
 function onTouchStart(e) {
   if (e.touches.length === 1) {
-    touchStartX = e.touches[0].clientX
+    const touch = e.touches[0]
+    touchStartX = touch.clientX
+    touchStartY = touch.clientY
     touchStartScrollX = targetX
     touchMoved = false
+    isDraggingDrawer = false
+    
+    // 检查是否点击在抽屉栏内
+    const target = e.target.closest('.drawer-track')
+    if (target) {
+      isDraggingDrawer = true
+    }
   }
 }
 
 function onTouchMove(e) {
   e.preventDefault()
   if (e.touches.length === 1) {
-    const dx = touchStartX - e.touches[0].clientX
-    if (Math.abs(dx) > 5) touchMoved = true
-    targetX = Math.max(0, Math.min(touchStartScrollX + dx * 1.8, maxScroll))
-    if (!animFrame) animFrame = requestAnimationFrame(updatePosition)
+    const touch = e.touches[0]
+    const dx = touchStartX - touch.clientX
+    const dy = touchStartY - touch.clientY
+    
+    // 判断滑动方向：水平滑动超过垂直滑动才触发滚动
+    if (Math.abs(dx) > 5 || Math.abs(dy) > 5) {
+      touchMoved = true
+    }
+    
+    // 如果是在抽屉栏内滑动，交给抽屉栏处理
+    if (isDraggingDrawer) {
+      return
+    }
+    
+    // 判断是否为水平滑动（水平距离 > 垂直距离）
+    if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 5) {
+      targetX = Math.max(0, Math.min(touchStartScrollX + dx * 1.8, maxScroll))
+      if (!animFrame) animFrame = requestAnimationFrame(updatePosition)
+    }
   }
 }
 
@@ -218,78 +277,79 @@ function updatePosition() {
   if (currentX !== targetX) { animFrame = requestAnimationFrame(updatePosition) } else { animFrame = null }
 }
 
-// ── 拉出栏内横向滚动 ──
-const drawerScrolls = {}
-const drawerTouchStarts = {}
+// ── 拉出栏内横向滚动（使用原生 scrollLeft） ──
+const drawerTrackRefs = ref([])
+
+function getDrawerTrack(index) {
+  // 从 refs 数组中获取对应的 track 元素
+  const el = drawerTrackRefs.value[index]
+  return el || null
+}
 
 function onDrawerWheel(e, index) {
   e.preventDefault()
   e.stopPropagation()
-  drawerScroll(e.deltaY, index, e.currentTarget)
+  
+  const track = e.currentTarget
+  if (!track) return
+  
+  // 使用原生 scrollLeft 滚动
+  const maxScroll = track.scrollWidth - track.clientWidth
+  const newScrollLeft = track.scrollLeft + e.deltaY
+  track.scrollLeft = Math.max(0, Math.min(newScrollLeft, maxScroll))
 }
 
-function drawerScroll(delta, index, track) {
-  const key = String(index)
-  if (!drawerScrolls[key]) {
-    drawerScrolls[key] = { current: 0, target: 0, max: 0, frame: null }
-  }
-  const s = drawerScrolls[key]
-  s.max = Math.max(0, track.scrollWidth - track.parentElement.clientWidth)
-  s.target += delta
-  s.target = Math.max(0, Math.min(s.target, s.max))
-  if (!s.frame) {
-    s.frame = requestAnimationFrame(() => animateDrawer(track, s))
-  }
-}
+// ── 抽屉栏触摸事件（使用原生 scrollLeft） ──
+let drawerTouchStartX = 0
+let drawerTouchStartY = 0
+let drawerTouchStartScroll = 0
 
 function onDrawerTouchStart(e, index) {
   e.stopPropagation()
   if (e.touches.length === 1) {
-    const key = String(index)
-    if (!drawerScrolls[key]) {
-      drawerScrolls[key] = { current: 0, target: 0, max: 0, frame: null }
-    }
-    drawerScrolls[key].max = Math.max(0, e.currentTarget.scrollWidth - e.currentTarget.parentElement.clientWidth)
-    drawerTouchStarts[index] = {
-      x: e.touches[0].clientX,
-      target: drawerScrolls[key].target,
+    const touch = e.touches[0]
+    drawerTouchStartX = touch.clientX
+    drawerTouchStartY = touch.clientY
+    
+    const track = e.currentTarget
+    if (track) {
+      drawerTouchStartScroll = track.scrollLeft
     }
   }
 }
 
 function onDrawerTouchMove(e, index) {
   e.stopPropagation()
-  const start = drawerTouchStarts[index]
-  if (!start || e.touches.length !== 1) return
-  const dx = start.x - e.touches[0].clientX
-  const key = String(index)
-  if (!drawerScrolls[key]) {
-    drawerScrolls[key] = { current: 0, target: 0, max: 0, frame: null }
-  }
-  const s = drawerScrolls[key]
-  s.target = Math.max(0, Math.min(start.target + dx, s.max))
-  if (!s.frame) {
-    s.frame = requestAnimationFrame(() => animateDrawer(e.currentTarget, s))
-  }
-}
-
-function animateDrawer(track, s) {
-  s.current += (s.target - s.current) * 0.12
-  if (Math.abs(s.target - s.current) < 0.05) s.current = s.target
-  track.style.transform = `translateX(-${s.current}px)`
-  if (s.current !== s.target) {
-    s.frame = requestAnimationFrame(() => animateDrawer(track, s))
-  } else {
-    s.frame = null
+  if (e.touches.length !== 1) return
+  
+  const touch = e.touches[0]
+  const dx = drawerTouchStartX - touch.clientX
+  const dy = drawerTouchStartY - touch.clientY
+  
+  // 判断是否为水平滑动
+  if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 5) {
+    e.preventDefault()
+    
+    const track = e.currentTarget
+    if (!track) return
+    
+    const maxScroll = track.scrollWidth - track.clientWidth
+    const newScrollLeft = drawerTouchStartScroll + dx
+    track.scrollLeft = Math.max(0, Math.min(newScrollLeft, maxScroll))
   }
 }
 
-// ── 点击外部关闭拉出栏 ──
+// ── 优化：点击外部关闭 ──
 function onDocumentClick(e) {
   if (pinnedIndex.value === null) return
   const wrapper = wrapperRef.value
   if (!wrapper) return
-  if (!wrapper.contains(e.target)) {
+  
+  // 检查点击是否在抽屉栏或按钮内
+  const target = e.target
+  const isDrawer = target.closest('.drawer-wrapper') || target.closest('.pull-btn')
+  
+  if (!wrapper.contains(target) && !isDrawer) {
     closeDrawer()
   }
 }
@@ -305,20 +365,21 @@ function handleResize() {
   }, 100)
 }
 
+// ── 滚动容器触摸事件绑定 ──
 onMounted(async () => {
   await nextTick()
   calculateLimits()
+  
   const el = wrapperRef.value
   if (el) {
     el.addEventListener('wheel', onWheel, { passive: false })
     el.addEventListener('touchstart', onTouchStart, { passive: true })
     el.addEventListener('touchmove', onTouchMove, { passive: false })
   }
-  // 全屏触屏滚动
-  document.addEventListener('touchstart', onTouchStart, { passive: true })
-  document.addEventListener('touchmove', onTouchMove, { passive: false })
+  
   window.addEventListener('resize', handleResize)
   document.addEventListener('click', onDocumentClick)
+  
   if (window.ResizeObserver && trackRef.value) {
     resizeObserver = new ResizeObserver(() => {
       calculateLimits()
@@ -335,27 +396,50 @@ onBeforeUnmount(() => {
     el.removeEventListener('touchstart', onTouchStart)
     el.removeEventListener('touchmove', onTouchMove)
   }
-  document.removeEventListener('touchstart', onTouchStart)
-  document.removeEventListener('touchmove', onTouchMove)
   window.removeEventListener('resize', handleResize)
   document.removeEventListener('click', onDocumentClick)
   clearTimeout(resizeTimer)
   if (resizeObserver) resizeObserver.disconnect()
   if (animFrame) cancelAnimationFrame(animFrame)
-  for (const key of Object.keys(drawerScrolls)) {
-    if (drawerScrolls[key].frame) cancelAnimationFrame(drawerScrolls[key].frame)
-  }
 })
 
 defineExpose({ getCurrentX: () => currentX, getMaxScroll: () => maxScroll })
 </script>
 
 <style scoped>
-.horizontal-scroll-wrapper { position: relative; width: 100%; height: 100%; overflow: hidden; cursor: grab; touch-action: none; }
+.horizontal-scroll-wrapper { 
+  position: relative; 
+  width: 100%; 
+  height: 100%; 
+  overflow: hidden; 
+  cursor: grab; 
+  touch-action: pan-y;
+}
 .horizontal-scroll-wrapper:active { cursor: grabbing; }
-.cards-track { display: flex; flex-wrap: nowrap; align-items: center; height: 100%; gap: 0; padding-left: 12vw; will-change: transform; user-select: none; -webkit-user-select: none; }
+.cards-track { 
+  display: flex; 
+  flex-wrap: nowrap; 
+  align-items: center; 
+  height: 100%; 
+  gap: 0; 
+  padding-left: 12vw; 
+  will-change: transform; 
+  user-select: none; 
+  -webkit-user-select: none; 
+}
 
-.box { position: relative; display: flex; width: 340px; height: 420px; justify-content: center; align-items: center; margin: 0 40px; flex-shrink: 0; transition: margin-right 0.5s cubic-bezier(0.4, 0, 0.2, 1), transform 0.5s; cursor: pointer; }
+.box { 
+  position: relative; 
+  display: flex; 
+  width: 340px; 
+  height: 420px; 
+  justify-content: center; 
+  align-items: center; 
+  margin: 0 40px; 
+  flex-shrink: 0; 
+  transition: margin-right 0.5s cubic-bezier(0.4, 0, 0.2, 1), transform 0.5s; 
+  cursor: pointer; 
+}
 
 /* ── 拉出栏包裹层：统一控制宽度过渡，drawer 与按钮完美同步 ── */
 .drawer-wrapper {
@@ -394,6 +478,7 @@ defineExpose({ getCurrentX: () => currentX, getMaxScroll: () => maxScroll })
   opacity: 1;
 }
 
+/* ── 抽屉栏滚动轨道 ── */
 .drawer-track {
   display: flex;
   align-items: center;
@@ -401,9 +486,24 @@ defineExpose({ getCurrentX: () => currentX, getMaxScroll: () => maxScroll })
   gap: 20px;
   padding: 0 40px 0 80px;
   padding: 0 56px 0 100px;
-  will-change: transform;
   user-select: none;
   -webkit-user-select: none;
+  touch-action: pan-y;
+  /* 关键：使用原生滚动 */
+  overflow-x: auto;
+  overflow-y: hidden;
+  /* 内容不换行 */
+  flex-wrap: nowrap;
+  /* 隐藏滚动条但保留滚动功能 */
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE/Edge */
+}
+
+/* 隐藏 Chrome/Safari 滚动条 */
+.drawer-track::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
 }
 
 /* ── 章节卡片（浅灰色斜平行四边形）── */
@@ -422,6 +522,7 @@ defineExpose({ getCurrentX: () => currentX, getMaxScroll: () => maxScroll })
   justify-content: center;
   box-shadow: 0 4px 12px rgba(0,0,0,0.06);
   padding: 8px 16px;
+  -webkit-tap-highlight-color: transparent;
 }
 .chapter-card:hover {
   background: #e0e0e5;
@@ -443,7 +544,6 @@ defineExpose({ getCurrentX: () => currentX, getMaxScroll: () => maxScroll })
   color: rgba(0,0,0,0.55);
   letter-spacing: 0.03em;
   text-align: center;
-  line-height: 1.3;
   pointer-events: none;
   word-break: keep-all;
 }
@@ -469,6 +569,9 @@ defineExpose({ getCurrentX: () => currentX, getMaxScroll: () => maxScroll })
   line-height: 1;
   letter-spacing: 0;
   white-space: nowrap;
+  -webkit-tap-highlight-color: transparent;
+  min-width: 44px;
+  min-height: 44px;
 }
 .pull-btn:hover {
   background: rgba(60,60,64,0.95);
@@ -485,14 +588,45 @@ defineExpose({ getCurrentX: () => currentX, getMaxScroll: () => maxScroll })
 }
 
 /* ── 渐变伪元素 ── */
-.box::before { content: ""; position: absolute; top: 0; left: 50px; width: 50%; height: 100%; border-radius: 12px; transform: skewX(12deg); transition: 0.5s; z-index: 0; }
-.box::after { content: ""; position: absolute; top: 0; left: 50px; width: 50%; height: 100%; border-radius: 12px; transform: skewX(12deg); filter: blur(30px); transition: 0.5s; z-index: -1; }
+.box::before { 
+  content: ""; 
+  position: absolute; 
+  top: 0; 
+  left: 50px; 
+  width: 50%; 
+  height: 100%; 
+  border-radius: 12px; 
+  transform: skewX(12deg); 
+  transition: 0.5s; 
+  z-index: 0; 
+}
+.box::after { 
+  content: ""; 
+  position: absolute; 
+  top: 0; 
+  left: 50px; 
+  width: 50%; 
+  height: 100%; 
+  border-radius: 12px; 
+  transform: skewX(12deg); 
+  filter: blur(30px); 
+  transition: 0.5s; 
+  z-index: -1; 
+}
 .box:hover::before,
-.box:hover::after { transform: skewX(0deg); left: 20px; width: calc(100% - 90px); }
+.box:hover::after { 
+  transform: skewX(0deg); 
+  left: 20px; 
+  width: calc(100% - 90px); 
+}
 
 /* ── 锁定悬浮样式 ── */
 .box.is-pinned::before,
-.box.is-pinned::after { transform: skewX(0deg); left: 20px; width: calc(100% - 90px); }
+.box.is-pinned::after { 
+  transform: skewX(0deg); 
+  left: 20px; 
+  width: calc(100% - 90px); 
+}
 
 .box.is-pinned { margin-right: 500px; }
 
@@ -503,25 +637,139 @@ defineExpose({ getCurrentX: () => currentX, getMaxScroll: () => maxScroll })
 .box.color-4::before, .box.color-4::after { background: linear-gradient(315deg, #f0ff99, #ff8e39, #070066); }
 
 /* 浮动方块 */
-.box > span { display: block; position: absolute; top: 0; left: 0; right: 0; bottom: 0; z-index: 5; pointer-events: none; }
-.box > span::before { content: ""; position: absolute; background: rgba(0,0,0,0.08); top: 0; left: 0; width: 0; height: 0; opacity: 0; transition: 0.3s; backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border-radius: 8px; box-shadow: 0 5px 15px rgba(0,0,0,0.06); animation: floatA 2s ease-in-out infinite; }
+.box > span { 
+  display: block; 
+  position: absolute; 
+  top: 0; 
+  left: 0; 
+  right: 0; 
+  bottom: 0; 
+  z-index: 5; 
+  pointer-events: none; 
+}
+.box > span::before { 
+  content: ""; 
+  position: absolute; 
+  background: rgba(0,0,0,0.08); 
+  top: 0; 
+  left: 0; 
+  width: 0; 
+  height: 0; 
+  opacity: 0; 
+  transition: 0.3s; 
+  backdrop-filter: blur(10px); 
+  -webkit-backdrop-filter: blur(10px); 
+  border-radius: 8px; 
+  box-shadow: 0 5px 15px rgba(0,0,0,0.06); 
+  animation: floatA 2s ease-in-out infinite; 
+}
 .box:hover > span::before,
-.box.is-pinned > span::before { opacity: 1; top: -50px; left: 50px; width: 100px; height: 100px; }
-.box > span::after { content: ""; position: absolute; bottom: 0; right: 0; width: 0; height: 0; background: rgba(0,0,0,0.08); opacity: 0; transition: 0.5s; backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border-radius: 8px; box-shadow: 0 5px 15px rgba(0,0,0,0.06); animation: floatB 2s ease-in-out infinite; animation-delay: -1s; }
+.box.is-pinned > span::before { 
+  opacity: 1; 
+  top: -50px; 
+  left: 50px; 
+  width: 100px; 
+  height: 100px; 
+}
+.box > span::after { 
+  content: ""; 
+  position: absolute; 
+  bottom: 0; 
+  right: 0; 
+  width: 0; 
+  height: 0; 
+  background: rgba(0,0,0,0.08); 
+  opacity: 0; 
+  transition: 0.5s; 
+  backdrop-filter: blur(10px); 
+  -webkit-backdrop-filter: blur(10px); 
+  border-radius: 8px; 
+  box-shadow: 0 5px 15px rgba(0,0,0,0.06); 
+  animation: floatB 2s ease-in-out infinite; 
+  animation-delay: -1s; 
+}
 .box:hover > span::after,
-.box.is-pinned > span::after { bottom: -50px; right: 50px; width: 100px; height: 100px; opacity: 1; }
-@keyframes floatA { 0%, 100% { transform: translateY(10px); } 50% { transform: translateY(-10px); } }
-@keyframes floatB { 0%, 100% { transform: translateY(-10px); } 50% { transform: translateY(10px); } }
+.box.is-pinned > span::after { 
+  bottom: -50px; 
+  right: 50px; 
+  width: 100px; 
+  height: 100px; 
+  opacity: 1; 
+}
+@keyframes floatA { 
+  0%, 100% { transform: translateY(10px); } 
+  50% { transform: translateY(-10px); } 
+}
+@keyframes floatB { 
+  0%, 100% { transform: translateY(-10px); } 
+  50% { transform: translateY(10px); } 
+}
 
 /* 内容面板 */
-.content { position: relative; padding: 32px 36px; color: #fff; background: rgba(20,20,20,0.75); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); box-shadow: 0 8px 32px rgba(0,0,0,0.15); border-radius: 12px; border: 1px solid rgba(255,255,255,0.06); z-index: 1; transition: 0.5s; width: 82%; margin-right: auto; }
-.box:hover .content { transform: translateX(-45px); padding: 48px 36px; width: calc(100% - 60px); }
-.box.is-pinned .content { transform: translateX(-85px); padding: 48px 36px; width: calc(100% - 60px); }
+.content { 
+  position: relative; 
+  padding: 32px 36px; 
+  color: #fff; 
+  background: rgba(20,20,20,0.75); 
+  backdrop-filter: blur(16px); 
+  -webkit-backdrop-filter: blur(16px); 
+  box-shadow: 0 8px 32px rgba(0,0,0,0.15); 
+  border-radius: 12px; 
+  border: 1px solid rgba(255,255,255,0.06); 
+  z-index: 1; 
+  transition: 0.5s; 
+  width: 82%; 
+  margin-right: auto; 
+}
+.box:hover .content { 
+  transform: translateX(-45px); 
+  padding: 48px 36px; 
+  width: calc(100% - 60px); 
+}
+.box.is-pinned .content { 
+  transform: translateX(-85px); 
+  padding: 48px 36px; 
+  width: calc(100% - 60px); 
+}
 
 /* 文字 */
-.card-id { font-family: var(--font-family, 'Inter', sans-serif); font-size: 2.4rem; font-weight: 900; color: #fff; margin: 0 0 8px 0; letter-spacing: -0.04em; }
-.card-name { font-family: var(--font-family, 'Inter', sans-serif); font-size: 1rem; font-weight: 500; color: rgba(255,255,255,0.6); margin: 0 0 6px 0; letter-spacing: 0.03em; }
-.card-subtitle { font-family: var(--font-family, 'Inter', sans-serif); font-size: 0.8rem; font-weight: 400; color: rgba(255,255,255,0.35); margin: 0; letter-spacing: 0.05em; line-height: 1.5; white-space: pre-line; }
+.card-id { 
+  font-family: var(--font-family, 'Inter', sans-serif); 
+  font-size: 2.4rem; 
+  font-weight: 900; 
+  color: #fff; 
+  margin: 0 0 8px 0; 
+  letter-spacing: -0.04em; 
+}
+.card-name { 
+  font-family: var(--font-family, 'Inter', sans-serif); 
+  font-size: 1rem; 
+  font-weight: 500; 
+  color: rgba(255,255,255,0.6); 
+  margin: 0 0 6px 0; 
+  letter-spacing: 0.03em; 
+}
+.card-subtitle { 
+  font-family: var(--font-family, 'Inter', sans-serif); 
+  font-size: 0.8rem; 
+  font-weight: 400; 
+  color: rgba(255,255,255,0.35); 
+  margin: 0; 
+  letter-spacing: 0.05em; 
+  line-height: 1.5; 
+  white-space: pre-line; 
+}
+
+/* 图标过渡动画 */
+.icon-fade-enter-active,
+.icon-fade-leave-active {
+  transition: all 0.2s ease;
+}
+.icon-fade-enter-from,
+.icon-fade-leave-to {
+  opacity: 0;
+  transform: scale(0.6);
+}
 
 @media (max-width: 767px) {
   .box { width: 260px; height: 340px; margin: 0 28px; }
@@ -536,11 +784,29 @@ defineExpose({ getCurrentX: () => currentX, getMaxScroll: () => maxScroll })
   .box:hover .drawer-wrapper { width: 44px; }
   .box.is-pinned .drawer-wrapper.is-open { width: 340px; }
 
-  .drawer-track { padding: 0 48px 0 50px; gap: 10px; }
-  .chapter-card { width: 100px; height: 72px; }
+  .drawer-track { 
+    padding: 0 48px 0 50px; 
+    gap: 10px;
+    touch-action: pan-y;
+    overflow-x: auto;
+    overflow-y: hidden;
+  }
+  
+  /* 移动端触控优化 */
+  .chapter-card {
+    width: 100px;
+    height: 72px;
+    min-width: 60px;
+    min-height: 60px;
+  }
   .chapter-heading { font-size: 0.72rem; }
 
-  .pull-btn { padding: 10px 10px; font-size: 1rem; }
+  .pull-btn {
+    min-width: 40px;
+    min-height: 40px;
+    padding: 8px 10px;
+    font-size: 1rem;
+  }
   .box.is-pinned .pull-btn { left: calc(94% - 0px); }
   .box.is-pinned { margin-right: 300px; }
 }
