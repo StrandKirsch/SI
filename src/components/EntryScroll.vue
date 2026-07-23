@@ -316,7 +316,7 @@ onBeforeUnmount(() => {
 .si {
   font-size: clamp(4rem, 5vw, 20rem);
   color: white;
-  font-weight: bold;
+  font-weight: 900;
   text-transform: uppercase;
   margin: 0;
   transform-origin: center;

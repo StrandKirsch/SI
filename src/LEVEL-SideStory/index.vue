@@ -133,7 +133,7 @@ function onCardScroll(x) {
     drawSplitTicks(visibleStart, visibleEnd, 'lower')
   }
   if (splitScrollRef.value) {
-    splitScrollRef.value.setAttribute('transform', `translate(${-x}, 0)`)
+    splitScrollRef.value.setAttribute('transform', `translate(${-x * 1.4}, 0)`)
   }
 }
 

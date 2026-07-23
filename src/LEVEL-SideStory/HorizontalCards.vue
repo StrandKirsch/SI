@@ -83,6 +83,8 @@ async function onPullClick(index) {
   const card = props.cards[index]
   if (!card?.sections?.length) return
 
+  if (touchMoved) return
+
   const wasOpen = pinnedIndex.value === index
 
   if (wasOpen) {
@@ -113,6 +115,11 @@ async function onPullClick(index) {
         // 左侧被裁切 → 向左滚动，留出边距
         if (cardLeft < currentX) {
           targetX = Math.max(0, cardLeft - 40)
+        }
+        // 移动端：额外滚动使第一章卡片在屏幕中心
+        if (window.innerWidth <= 767) {
+          const centerX = cardLeft + cardEl.offsetWidth + 60 - wrapperRef.value.offsetWidth / 2
+          targetX = Math.min(maxScroll, Math.max(targetX, centerX))
         }
       }
     }
@@ -182,12 +189,15 @@ function onWheel(e) {
 }
 
 // ── 触屏支持 ──
-let touchStartY = 0, touchStartX = 0
+let touchStartY = 0, touchStartX = 0, touchStartTime = 0
+let touchMoved = false
 
 function onTouchStart(e) {
   if (e.touches.length === 1) {
     touchStartY = e.touches[0].clientY
     touchStartX = targetX
+    touchStartTime = Date.now()
+    touchMoved = false
   }
 }
 
@@ -195,7 +205,9 @@ function onTouchMove(e) {
   e.preventDefault()
   if (e.touches.length === 1) {
     const dy = touchStartY - e.touches[0].clientY
-    targetX = Math.max(0, Math.min(touchStartX + dy, maxScroll))
+    if (Math.abs(dy) > 5) touchMoved = true
+    // 放大触屏滑动速度
+    targetX = Math.max(0, Math.min(touchStartX + dy * 2.5, maxScroll))
     if (!animFrame) animFrame = requestAnimationFrame(updatePosition)
   }
 }
@@ -304,6 +316,9 @@ onMounted(async () => {
     el.addEventListener('touchstart', onTouchStart, { passive: true })
     el.addEventListener('touchmove', onTouchMove, { passive: false })
   }
+  // 全屏触屏滚动
+  document.addEventListener('touchstart', onTouchStart, { passive: true })
+  document.addEventListener('touchmove', onTouchMove, { passive: false })
   window.addEventListener('resize', handleResize)
   document.addEventListener('click', onDocumentClick)
   if (window.ResizeObserver && trackRef.value) {
@@ -322,6 +337,8 @@ onBeforeUnmount(() => {
     el.removeEventListener('touchstart', onTouchStart)
     el.removeEventListener('touchmove', onTouchMove)
   }
+  document.removeEventListener('touchstart', onTouchStart)
+  document.removeEventListener('touchmove', onTouchMove)
   window.removeEventListener('resize', handleResize)
   document.removeEventListener('click', onDocumentClick)
   clearTimeout(resizeTimer)
@@ -336,7 +353,7 @@ defineExpose({ getCurrentX: () => currentX, getMaxScroll: () => maxScroll })
 </script>
 
 <style scoped>
-.horizontal-scroll-wrapper { position: relative; width: 100%; height: 100%; overflow: hidden; cursor: grab; }
+.horizontal-scroll-wrapper { position: relative; width: 100%; height: 100%; overflow: hidden; cursor: grab; touch-action: none; }
 .horizontal-scroll-wrapper:active { cursor: grabbing; }
 .cards-track { display: flex; flex-wrap: nowrap; align-items: center; height: 100%; gap: 0; padding-left: 12vw; will-change: transform; user-select: none; -webkit-user-select: none; }
 

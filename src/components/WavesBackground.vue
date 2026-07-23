@@ -2,7 +2,6 @@
   <div
     class="waves-container"
     ref="containerRef"
-    @touchmove.prevent="onTouchMove"
     @mouseleave="onMouseLeave"
   >
     <svg ref="svgRef" class="waves-svg"></svg>
@@ -43,6 +42,9 @@ const mouse = {
   a: 0,
   set: false,
 }
+
+// Guard against synthetic mouse events firing after touch
+let isTouching = false
 
 // ── Grid ───────────────────────────────────────────
 function setSize() {
@@ -105,7 +107,15 @@ function updateMousePosition(x, y) {
 }
 
 function onMouseMove(e) {
+  if (isTouching) return
   updateMousePosition(e.pageX, e.pageY)
+}
+
+function onTouchStart(e) {
+  if (e.touches.length > 0) {
+    isTouching = true
+    updateMousePosition(e.touches[0].clientX, e.touches[0].clientY)
+  }
 }
 
 function onTouchMove(e) {
@@ -114,7 +124,18 @@ function onTouchMove(e) {
   }
 }
 
+function onTouchEnd() {
+  isTouching = false
+  mouse.set = false
+}
+
+function onTouchCancel() {
+  isTouching = false
+  mouse.set = false
+}
+
 function onMouseLeave() {
+  if (isTouching) return
   mouse.set = false
 }
 
@@ -215,6 +236,10 @@ onMounted(() => {
 
   // Window 级别监听，不受上层卡片 z-index 影响
   window.addEventListener('mousemove', onMouseMove)
+  window.addEventListener('touchstart', onTouchStart, { passive: true })
+  window.addEventListener('touchmove', onTouchMove, { passive: true })
+  window.addEventListener('touchend', onTouchEnd)
+  window.addEventListener('touchcancel', onTouchCancel)
 
   resizeObserver = new ResizeObserver(() => {
     setSize()
@@ -227,6 +252,10 @@ onBeforeUnmount(() => {
   if (animFrameId) cancelAnimationFrame(animFrameId)
   if (resizeObserver) resizeObserver.disconnect()
   window.removeEventListener('mousemove', onMouseMove)
+  window.removeEventListener('touchstart', onTouchStart)
+  window.removeEventListener('touchmove', onTouchMove)
+  window.removeEventListener('touchend', onTouchEnd)
+  window.removeEventListener('touchcancel', onTouchCancel)
 })
 </script>
 

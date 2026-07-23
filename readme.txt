@@ -26,7 +26,7 @@ powershell
 cd E:\SI-backrooms-viewer
 npm run deploy
 
-（等效于：rimraf dist → npm run build → gh-pages -d dist）
+（等效于：rimraf dist → npm run build → gh-pages -d dist --dotfiles）
 
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
