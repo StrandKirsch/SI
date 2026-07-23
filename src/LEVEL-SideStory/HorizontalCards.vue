@@ -192,6 +192,7 @@ function onTouchStart(e) {
 }
 
 function onTouchMove(e) {
+  e.preventDefault()
   if (e.touches.length === 1) {
     const dy = touchStartY - e.touches[0].clientY
     targetX = Math.max(0, Math.min(touchStartX + dy, maxScroll))
@@ -301,7 +302,7 @@ onMounted(async () => {
   if (el) {
     el.addEventListener('wheel', onWheel, { passive: false })
     el.addEventListener('touchstart', onTouchStart, { passive: true })
-    el.addEventListener('touchmove', onTouchMove, { passive: true })
+    el.addEventListener('touchmove', onTouchMove, { passive: false })
   }
   window.addEventListener('resize', handleResize)
   document.addEventListener('click', onDocumentClick)

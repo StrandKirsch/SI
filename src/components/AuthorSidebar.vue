@@ -51,7 +51,7 @@
 
 <script setup>
 import { computed, ref, onMounted, onUnmounted } from 'vue'
-import { levels } from '../data/levels.js'
+import catalog from '../LEVEL/catalog.json'
 
 const props = defineProps({
   currentLevelId: { type: Number, required: true }
@@ -75,7 +75,7 @@ onUnmounted(() => {
 })
 
 const currentLevel = computed(() => {
-  return levels.find(l => l.id === props.currentLevelId) || null
+  return catalog.find(l => l.id === props.currentLevelId) || null
 })
 
 const currentAuthors = computed(() => {
@@ -88,7 +88,7 @@ const authorLevelMap = computed(() => {
   if (!currentLevel.value) return map
 
   for (const author of currentAuthors.value) {
-    map[author] = levels.filter(
+    map[author] = catalog.filter(
       l => l.authors && l.authors.includes(author) && l.id !== props.currentLevelId
     )
   }
@@ -105,8 +105,8 @@ function skipIntro() {
   position: fixed;
   top: 0;
   left: 0;
-  width: 260px;
-  min-width: 260px;
+  width: 220px;
+  min-width: 220px;
   height: 100vh;
   max-height: 100vh;
   background: rgba(0, 0, 0, 0.92);
@@ -124,9 +124,9 @@ function skipIntro() {
 }
 
 .author-sidebar.collapsed {
-  width: 44px;
-  min-width: 44px;
-  padding: 32px 8px 40px;
+  width: 36px;
+  min-width: 36px;
+  padding: 32px 6px 40px;
 }
 
 /* ── Toggle button ── */

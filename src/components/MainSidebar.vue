@@ -69,8 +69,8 @@ defineExpose({ collapse })
   position: fixed;
   top: 0;
   left: 0;
-  width: 260px;
-  min-width: 260px;
+  width: 220px;
+  min-width: 220px;
   height: 100vh;
   max-height: 100vh;
   background: rgba(0, 0, 0, 0.92);
@@ -84,9 +84,9 @@ defineExpose({ collapse })
 }
 
 .main-sidebar.collapsed {
-  width: 44px;
-  min-width: 44px;
-  padding: 32px 8px 40px;
+  width: 36px;
+  min-width: 36px;
+  padding: 32px 6px 40px;
 }
 
 /* ── Toggle button ── */
