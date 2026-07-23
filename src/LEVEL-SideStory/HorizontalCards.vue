@@ -116,10 +116,10 @@ async function onPullClick(index) {
         if (cardLeft < currentX) {
           targetX = Math.max(0, cardLeft - 40)
         }
-        // 移动端：额外滚动使第一章卡片在屏幕中心
+        // 移动端：仅滚动到面板左端可见，偏向左侧展示第一章卡片
         if (window.innerWidth <= 767) {
-          const centerX = cardLeft + cardEl.offsetWidth + 60 - wrapperRef.value.offsetWidth / 2
-          targetX = Math.min(maxScroll, Math.max(targetX, centerX))
+          const panelLeft = cardLeft + cardEl.offsetWidth - wrapperRef.value.offsetWidth + 100
+          targetX = Math.min(maxScroll, Math.max(targetX, panelLeft))
         }
       }
     }
@@ -188,15 +188,14 @@ function onWheel(e) {
   if (!animFrame) animFrame = requestAnimationFrame(updatePosition)
 }
 
-// ── 触屏支持 ──
-let touchStartY = 0, touchStartX = 0, touchStartTime = 0
+// ── 触屏支持（左右滑动）──
+let touchStartX = 0, touchStartScrollX = 0
 let touchMoved = false
 
 function onTouchStart(e) {
   if (e.touches.length === 1) {
-    touchStartY = e.touches[0].clientY
-    touchStartX = targetX
-    touchStartTime = Date.now()
+    touchStartX = e.touches[0].clientX
+    touchStartScrollX = targetX
     touchMoved = false
   }
 }
@@ -204,10 +203,9 @@ function onTouchStart(e) {
 function onTouchMove(e) {
   e.preventDefault()
   if (e.touches.length === 1) {
-    const dy = touchStartY - e.touches[0].clientY
-    if (Math.abs(dy) > 5) touchMoved = true
-    // 放大触屏滑动速度
-    targetX = Math.max(0, Math.min(touchStartX + dy * 2.5, maxScroll))
+    const dx = touchStartX - e.touches[0].clientX
+    if (Math.abs(dx) > 5) touchMoved = true
+    targetX = Math.max(0, Math.min(touchStartScrollX + dx * 1.8, maxScroll))
     if (!animFrame) animFrame = requestAnimationFrame(updatePosition)
   }
 }
@@ -253,7 +251,7 @@ function onDrawerTouchStart(e, index) {
     }
     drawerScrolls[key].max = Math.max(0, e.currentTarget.scrollWidth - e.currentTarget.parentElement.clientWidth)
     drawerTouchStarts[index] = {
-      y: e.touches[0].clientY,
+      x: e.touches[0].clientX,
       target: drawerScrolls[key].target,
     }
   }
@@ -263,13 +261,13 @@ function onDrawerTouchMove(e, index) {
   e.stopPropagation()
   const start = drawerTouchStarts[index]
   if (!start || e.touches.length !== 1) return
-  const dy = start.y - e.touches[0].clientY
+  const dx = start.x - e.touches[0].clientX
   const key = String(index)
   if (!drawerScrolls[key]) {
     drawerScrolls[key] = { current: 0, target: 0, max: 0, frame: null }
   }
   const s = drawerScrolls[key]
-  s.target = Math.max(0, Math.min(start.target + dy, s.max))
+  s.target = Math.max(0, Math.min(start.target + dx, s.max))
   if (!s.frame) {
     s.frame = requestAnimationFrame(() => animateDrawer(e.currentTarget, s))
   }
